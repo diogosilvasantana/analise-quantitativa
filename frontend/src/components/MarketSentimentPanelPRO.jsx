@@ -1,247 +1,185 @@
-import React from 'react';
-import { PieChart, Pie, Cell, ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip } from 'recharts';
-
-// --- Translation Helper ---
-const signalMap = {
-    "STRONG_BUY": "COMPRA FORTE 🐂",
-    "STRONG_SELL": "VENDA FORTE 🐻",
-    "BULLISH_DIVERGENCE": "DIVERGÊNCIA ALTISTA 💎",
-    "BEARISH_DIVERGENCE": "DIVERGÊNCIA BAIXISTA ⚠️",
-    "BUY": "COMPRA 📈",
-    "SELL": "VENDA 📉",
-    "NEUTRAL": "NEUTRO 😐"
-};
-
-const getSignalLabel = (key) => signalMap[key] || key;
-
-// --- Sub-Components ---
-
-const BasisGaugeCircular = ({ value }) => {
-    // Normalize value (-2000 to 2000) to (0 to 100)
-    const clamped = Math.max(-2000, Math.min(2000, value));
-    const percent = ((clamped + 2000) / 4000) * 100;
-
-    // Gauge Data (Background and Value)
-    const data = [
-        { name: 'Valor', value: percent },
-        { name: 'Resto', value: 100 - percent }
-    ];
-
-    // Color Logic
-    let color = '#888';
-    if (value > 500) color = '#00ff88'; // Premium
-    else if (value < -500) color = '#ff3333'; // Discount
-    else color = '#ffd700'; // Flat
-
-    return (
-        <div style={{ width: '100%', height: 120, position: 'relative' }}>
-            <ResponsiveContainer>
-                <PieChart>
-                    <Pie
-                        data={data}
-                        cx="50%"
-                        cy="70%"
-                        startAngle={180}
-                        endAngle={0}
-                        innerRadius={60}
-                        outerRadius={80}
-                        paddingAngle={0}
-                        dataKey="value"
-                        stroke="none"
-                    >
-                        <Cell key="val" fill={color} />
-                        <Cell key="rest" fill="#333" />
-                    </Pie>
-                    <Tooltip
-                        contentStyle={{ background: '#1a1f3a', border: '1px solid #333', borderRadius: '4px' }}
-                        itemStyle={{ color: '#fff' }}
-                        formatter={(value, name) => [name === 'Valor' ? `${value.toFixed(0)}%` : value, name]}
-                    />
-                </PieChart>
-            </ResponsiveContainer>
-            <div style={{ position: 'absolute', bottom: 10, width: '100%', textAlign: 'center', color: '#fff', fontWeight: 'bold' }}>
-                {value > 0 ? '+' : ''}{value.toFixed(0)}
-            </div>
-            <div style={{ position: 'absolute', bottom: -5, width: '100%', textAlign: 'center', fontSize: '0.7em', color: '#aaa' }}>
-                BASIS (FUTURO)
-            </div>
-        </div>
-    );
-};
-
-const BreadthDonutChart = ({ up, down, neutral }) => {
-    const data = [
-        { name: 'Alta', value: up, color: '#00ff88' },
-        { name: 'Baixa', value: down, color: '#ff3333' },
-        { name: 'Neutro', value: neutral, color: '#888' }
-    ];
-
-    return (
-        <div style={{ width: '100%', height: 120 }}>
-            <ResponsiveContainer>
-                <PieChart>
-                    <Pie
-                        data={data}
-                        cx="50%"
-                        cy="50%"
-                        innerRadius={35}
-                        outerRadius={50}
-                        paddingAngle={5}
-                        dataKey="value"
-                        stroke="none"
-                    >
-                        {data.map((entry, index) => (
-                            <Cell key={`cell-${index}`} fill={entry.color} />
-                        ))}
-                    </Pie>
-                    <Tooltip
-                        contentStyle={{ background: '#1a1f3a', border: '1px solid #333', borderRadius: '4px' }}
-                        itemStyle={{ color: '#fff' }}
-                    />
-                </PieChart>
-            </ResponsiveContainer>
-            <div style={{ textAlign: 'center', marginTop: -10, fontSize: '0.8em', color: '#aaa' }}>
-                {up}⬆ {down}⬇
-            </div>
-        </div>
-    );
-};
-
-const SignalTimelineChart = ({ data }) => {
-    if (!data || data.length === 0) return null;
-
-    // Map signals to numeric values for chart
-    const signalToVal = (s) => {
-        if (s.includes('STRONG_BUY')) return 2;
-        if (s.includes('BUY')) return 1;
-        if (s.includes('SELL')) return -1;
-        if (s.includes('STRONG_SELL')) return -2;
-        return 0;
-    };
-
-    const chartData = data.map(d => ({
-        time: d.time,
-        val: signalToVal(d.signal),
-        signal: d.signal,
-        label: getSignalLabel(d.signal) // Add translated label
-    }));
-
-    return (
-        <div style={{ width: '100%', height: 100, marginTop: 20 }}>
-            <h4 style={{ fontSize: '0.8em', color: '#666', marginBottom: 5 }}>Linha do Tempo (Sinais)</h4>
-            <ResponsiveContainer>
-                <LineChart data={chartData}>
-                    <XAxis dataKey="time" hide />
-                    <YAxis domain={[-2.5, 2.5]} hide />
-                    <Line
-                        type="stepAfter"
-                        dataKey="val"
-                        stroke="#00ccff"
-                        strokeWidth={2}
-                        dot={{ r: 3, fill: '#00ccff' }}
-                        activeDot={{ r: 5, fill: '#fff' }}
-                    />
-                    <Tooltip
-                        contentStyle={{ background: '#1a1f3a', border: 'none' }}
-                        labelStyle={{ color: '#888' }}
-                        formatter={(value, name, props) => [props.payload.label, 'Sinal']}
-                    />
-                </LineChart>
-            </ResponsiveContainer>
-        </div>
-    );
-};
-
-const ComparisonWithAlert = ({ sentiment }) => {
-    if (!sentiment) return null;
-    const { spx_signal, win_signal, divergence, status } = sentiment;
-
-    return (
-        <div className={`comparison-pro ${divergence ? 'divergence-alert' : ''}`}>
-            <div className="comp-header">Contexto Global</div>
-            <div className="comp-grid">
-                <div className="comp-col">
-                    <span className="comp-title">S&P 500</span>
-                    <span className={`comp-val ${spx_signal.includes('BUY') ? 'bullish' : spx_signal.includes('SELL') ? 'bearish' : ''}`}>
-                        {getSignalLabel(spx_signal)}
-                    </span>
-                </div>
-                <div className="comp-vs">vs</div>
-                <div className="comp-col">
-                    <span className="comp-title">WIN</span>
-                    <span className={`comp-val ${win_signal.includes('BUY') ? 'bullish' : win_signal.includes('SELL') ? 'bearish' : ''}`}>
-                        {getSignalLabel(win_signal)}
-                    </span>
-                </div>
-            </div>
-            <div className={`comp-status ${divergence ? 'warning' : 'success'}`}>
-                {status}
-            </div>
-        </div>
-    );
-};
-
-// --- Main Component ---
+import React, { useState, useEffect } from 'react';
 
 export function MarketSentimentPanelPRO({ data }) {
-    if (!data) return null;
+    const [statusChanged, setStatusChanged] = useState(false);
+    const [animateValues, setAnimateValues] = useState({});
 
-    const { basis, breadth, sentiment_comparison, signal_history } = data;
+    const { basis, breadth, sentiment_comparison, signal_history } = data || {};
 
-    const mainSignal = breadth ? breadth.signal : "NEUTRAL";
-    const confidence = breadth ? breadth.confidence : 0;
+    // Animar quando dados mudam
+    useEffect(() => {
+        setStatusChanged(true);
+        const timer = setTimeout(() => setStatusChanged(false), 1500);
+        return () => clearTimeout(timer);
+    }, [sentiment_comparison?.status, basis?.value]);
+
+    // Translations
+    const basisMap = {
+        "PREMIUM_HIGH": "Otimismo Exagerado 🚀",
+        "PREMIUM_NORMAL": "Prêmio Normal ✅",
+        "FLAT": "Indecisão 😐",
+        "DISCOUNT": "Desconto (Backwardation) 📉",
+        "DISCOUNT_HIGH": "Pessimismo Extremo 💀",
+    };
+
+    const signalMap = {
+        "STRONG_BUY": "Compra Forte 🐂",
+        "STRONG_SELL": "Venda Forte 🐻",
+        "BULLISH_DIVERGENCE": "Divergência Altista 💎",
+        "BEARISH_DIVERGENCE": "Divergência Baixista ⚠️",
+        "BUY": "Compra 📈",
+        "SELL": "Venda 📉",
+        "NEUTRAL": "Neutro 😐"
+    };
+
+    const getBasisLabel = (key) => basisMap[key] || key;
+    const getSignalLabel = (key) => signalMap[key] || key;
+
+    const isBullish = breadth?.signal?.includes('BUY') || false;
+    const isBearish = breadth?.signal?.includes('SELL') || false;
+    const hasDivergence = sentiment_comparison?.divergence || false;
 
     return (
-        <div className="sentiment-container pro">
-            {/* 1. Hero Signal */}
-            <div className="signal-hero">
-                <div className={`signal-value ${mainSignal}`}>
-                    {getSignalLabel(mainSignal)}
-                </div>
-                <div className="signal-confidence">
-                    Confiança: <span style={{ color: confidence > 70 ? '#00ff88' : '#ffcc00' }}>{confidence.toFixed(0)}%</span>
-                </div>
-            </div>
-
-            {/* 2. Critical Alerts */}
-            {sentiment_comparison && sentiment_comparison.divergence && (
-                <div className="alert-banner warning-animated">
-                    ⚠️ DIVERGÊNCIA INTERNACIONAL DETECTADA
+        <div className="sentiment-panel-pro">
+            {/* ALERT BANNER (Se houver divergência) */}
+            {hasDivergence && (
+                <div className="alert-banner alert-divergence">
+                    <div className="alert-icon">⚠️</div>
+                    <div className="alert-text">
+                        DIVERGÊNCIA: {getSignalLabel(sentiment_comparison.spx_signal)} vs {getSignalLabel(sentiment_comparison.win_signal)}
+                    </div>
                 </div>
             )}
 
-            {/* 3. Metrics Grid */}
-            <div className="metrics-grid">
-                {/* Basis Gauge */}
+            {/* SIGNAL HERO (Dominante) */}
+            {breadth && (
+                <div className={`signal-hero ${isBullish ? 'bullish' : isBearish ? 'bearish' : 'neutral'}`}>
+                    <div className="signal-text">
+                        {getSignalLabel(breadth.signal)}
+                    </div>
+                    <div className={`signal-confidence ${statusChanged ? 'changed' : ''}`}>
+                        Confiança: {breadth.confidence.toFixed(0)}%
+                    </div>
+                </div>
+            )}
+
+            {/* METRICS GRID */}
+            <div className="sentiment-grid">
+
+                {/* BASIS CARD */}
                 {basis && (
-                    <div className="metric-card basis-pro">
-                        <BasisGaugeCircular value={basis.value} />
+                    <div className="sentiment-card basis-card">
+                        <h3>Basis (Futuro vs À Vista)</h3>
+                        <div className="basis-value-large">
+                            {basis.value > 0 ? '+' : ''}{basis.value.toFixed(0)} pts
+                        </div>
+                        <div className="gauge-semi-circle">
+                            <svg viewBox="0 0 200 100" className="gauge-svg">
+                                <path d="M 20 80 A 60 60 0 0 1 180 80" className="gauge-track" />
+                                <path
+                                    d="M 20 80 A 60 60 0 0 1 180 80"
+                                    className="gauge-fill"
+                                    style={{ strokeDasharray: `${Math.max(0, Math.min(160, (basis.value + 2000) / 25))} 160` }}
+                                />
+                            </svg>
+                        </div>
+                        <div className="metric-label-large">
+                            {getBasisLabel(basis.interpretation)}
+                        </div>
                     </div>
                 )}
 
-                {/* Breadth Donut */}
+                {/* BREADTH CARD */}
                 {breadth && (
-                    <div className="metric-card breadth-pro">
-                        <BreadthDonutChart
-                            up={breadth.up}
-                            down={breadth.down}
-                            neutral={breadth.neutral}
-                        />
+                    <div className="sentiment-card breadth-card">
+                        <h3>Força do Movimento (Top 10)</h3>
+                        <div className="breadth-donut">
+                            <svg viewBox="0 0 100 100" className="donut-svg">
+                                <circle cx="50" cy="50" r="45" className="donut-track" />
+                                <circle
+                                    cx="50"
+                                    cy="50"
+                                    r="45"
+                                    className="donut-segment up"
+                                    style={{ strokeDasharray: `${(breadth.up / 10) * 282.7} 282.7` }}
+                                />
+                                <circle
+                                    cx="50"
+                                    cy="50"
+                                    r="45"
+                                    className="donut-segment neutral"
+                                    style={{
+                                        strokeDasharray: `${(breadth.neutral / 10) * 282.7} 282.7`,
+                                        strokeDashoffset: `-${(breadth.up / 10) * 282.7}`
+                                    }}
+                                />
+                                <circle
+                                    cx="50"
+                                    cy="50"
+                                    r="45"
+                                    className="donut-segment down"
+                                    style={{
+                                        strokeDasharray: `${(breadth.down / 10) * 282.7} 282.7`,
+                                        strokeDashoffset: `-${((breadth.up + breadth.neutral) / 10) * 282.7}`
+                                    }}
+                                />
+                                <text x="50" y="50" className="donut-center">{breadth.up}⬆</text>
+                            </svg>
+                        </div>
+                        <div className="breadth-legend">
+                            <div><span className="dot up"></span> {breadth.up} Altas</div>
+                            <div><span className="dot neutral"></span> {breadth.neutral} Neutras</div>
+                            <div><span className="dot down"></span> {breadth.down} Baixas</div>
+                        </div>
                     </div>
                 )}
 
-                {/* Comparison */}
+                {/* COMPARISON CARD */}
                 {sentiment_comparison && (
-                    <div className="metric-card comparison-pro-card">
-                        <ComparisonWithAlert sentiment={sentiment_comparison} />
+                    <div className={`sentiment-card comparison-card ${hasDivergence ? 'divergence-alert' : ''}`}>
+                        <h3>SPX vs WIN</h3>
+                        <div className="comparison-content">
+                            <div className="comp-item">
+                                <span className="comp-label">S&P 500</span>
+                                <span className={`comp-signal ${sentiment_comparison.spx_signal.includes('BUY') ? 'bullish' : 'bearish'}`}>
+                                    {getSignalLabel(sentiment_comparison.spx_signal)}
+                                </span>
+                            </div>
+                            <div className="comp-divider">{hasDivergence ? '⚠️' : '✅'}</div>
+                            <div className="comp-item">
+                                <span className="comp-label">WIN</span>
+                                <span className={`comp-signal ${sentiment_comparison.win_signal.includes('BUY') ? 'bullish' : 'bearish'}`}>
+                                    {getSignalLabel(sentiment_comparison.win_signal)}
+                                </span>
+                            </div>
+                        </div>
+                        <div className={`status-badge ${sentiment_comparison.status === 'ALINHADO' ? 'success' : 'warning'}`}>
+                            {sentiment_comparison.status}
+                        </div>
                     </div>
                 )}
             </div>
 
-            {/* 4. Timeline */}
-            <div className="timeline-pro">
-                <SignalTimelineChart data={signal_history} />
-            </div>
+            {/* TIMELINE */}
+            {signal_history && signal_history.length > 0 && (
+                <div className="sentiment-card timeline-card">
+                    <h3>Histórico de Sinais ⏳</h3>
+                    <div className="timeline-visual">
+                        <svg className="timeline-svg" viewBox={`0 0 ${signal_history.length * 40} 60`}>
+                            <line x1="0" y1="30" x2={signal_history.length * 40} y2="30" className="timeline-line" />
+                            {signal_history.map((item, idx) => (
+                                <g key={idx} transform={`translate(${idx * 40 + 20}, 30)`}>
+                                    <circle
+                                        r="6"
+                                        className={`timeline-dot ${item.signal.includes('BUY') ? 'bullish' : 'bearish'}`}
+                                    />
+                                    <text y="20" className="timeline-label">{item.time}</text>
+                                </g>
+                            ))}
+                        </svg>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

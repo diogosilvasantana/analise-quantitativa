@@ -4,6 +4,7 @@ import React from 'react';
 import { Card } from '@/components/ui/card';
 import { DashboardData } from '@/types/dashboard';
 import { cn } from '@/lib/utils';
+import { Calendar as CalendarIcon } from 'lucide-react';
 
 interface EconomicCalendarProps {
     data: DashboardData;
@@ -14,7 +15,10 @@ export function EconomicCalendar({ data }: EconomicCalendarProps) {
 
     return (
         <Card className="border-slate-700 bg-slate-800/30 p-6">
-            <h2 className="text-lg font-bold text-slate-200 mb-4">Calendário Econômico 📅</h2>
+            <h2 className="text-lg font-bold text-slate-200 mb-4 flex items-center gap-2">
+                <CalendarIcon className="w-5 h-5 text-purple-400" />
+                Calendário Econômico
+            </h2>
             <div className="overflow-x-auto">
                 <table className="w-full text-sm text-left">
                     <thead className="text-xs text-slate-400 uppercase bg-slate-900/50">

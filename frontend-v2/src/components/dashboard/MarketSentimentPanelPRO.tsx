@@ -5,6 +5,19 @@ import { Card } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { DashboardData } from '@/types/dashboard';
 import { cn } from '@/lib/utils';
+import {
+    Rocket,
+    CheckCircle2,
+    MinusCircle,
+    TrendingDown,
+    TrendingUp,
+    AlertTriangle,
+    Skull,
+    Diamond,
+    ArrowUp,
+    ArrowDown,
+    Minus
+} from 'lucide-react';
 
 interface MarketSentimentPanelPROProps {
     data: DashboardData;
@@ -21,26 +34,26 @@ export function MarketSentimentPanelPRO({ data }: MarketSentimentPanelPROProps) 
         return () => clearTimeout(timer);
     }, [sentiment_comparison?.status, basis?.value]);
 
-    const basisMap: Record<string, string> = {
-        PREMIUM_HIGH: 'Otimismo Exagerado 🚀',
-        PREMIUM_NORMAL: 'Prêmio Normal ✅',
-        FLAT: 'Indecisão 😐',
-        DISCOUNT: 'Desconto (Backwardation) 📉',
-        DISCOUNT_HIGH: 'Pessimismo Extremo 💀',
+    const basisMap: Record<string, { label: string; icon: React.ReactNode }> = {
+        PREMIUM_HIGH: { label: 'Otimismo Exagerado', icon: <Rocket className="w-4 h-4" /> },
+        PREMIUM_NORMAL: { label: 'Prêmio Normal', icon: <CheckCircle2 className="w-4 h-4" /> },
+        FLAT: { label: 'Indecisão', icon: <MinusCircle className="w-4 h-4" /> },
+        DISCOUNT: { label: 'Desconto (Backwardation)', icon: <TrendingDown className="w-4 h-4" /> },
+        DISCOUNT_HIGH: { label: 'Pessimismo Extremo', icon: <Skull className="w-4 h-4" /> },
     };
 
-    const signalMap: Record<string, string> = {
-        STRONG_BUY: 'Compra Forte 🐂',
-        STRONG_SELL: 'Venda Forte 🐻',
-        BULLISH_DIVERGENCE: 'Divergência Altista 💎',
-        BEARISH_DIVERGENCE: 'Divergência Baixista ⚠️',
-        BUY: 'Compra 📈',
-        SELL: 'Venda 📉',
-        NEUTRAL: 'Neutro 😐',
+    const signalMap: Record<string, { label: string; icon: React.ReactNode }> = {
+        STRONG_BUY: { label: 'Compra Forte', icon: <TrendingUp className="w-5 h-5" /> },
+        STRONG_SELL: { label: 'Venda Forte', icon: <TrendingDown className="w-5 h-5" /> },
+        BULLISH_DIVERGENCE: { label: 'Divergência Altista', icon: <Diamond className="w-5 h-5" /> },
+        BEARISH_DIVERGENCE: { label: 'Divergência Baixista', icon: <AlertTriangle className="w-5 h-5" /> },
+        BUY: { label: 'Compra', icon: <TrendingUp className="w-5 h-5" /> },
+        SELL: { label: 'Venda', icon: <TrendingDown className="w-5 h-5" /> },
+        NEUTRAL: { label: 'Neutro', icon: <MinusCircle className="w-5 h-5" /> },
     };
 
-    const getBasisLabel = (key: string) => basisMap[key] || key;
-    const getSignalLabel = (key: string) => signalMap[key] || key;
+    const getBasisInfo = (key: string) => basisMap[key] || { label: key, icon: null };
+    const getSignalInfo = (key: string) => signalMap[key] || { label: key, icon: null };
 
     const isBullish = breadth?.signal?.includes('BUY') || false;
     const isBearish = breadth?.signal?.includes('SELL') || false;
@@ -48,16 +61,19 @@ export function MarketSentimentPanelPRO({ data }: MarketSentimentPanelPROProps) 
 
     if (!data) return null;
 
+    const spxInfo = getSignalInfo(sentiment_comparison?.spx_signal || '');
+    const winInfo = getSignalInfo(sentiment_comparison?.win_signal || '');
+    const breadthInfo = getSignalInfo(breadth?.signal || '');
+
     return (
         <div className="space-y-6">
             {/* ALERT BANNER */}
             {hasDivergence && (
                 <Alert className="border-red-500/50 bg-red-950/30 animate-pulse">
                     <AlertDescription className="flex items-center gap-2 text-red-400">
-                        <span className="text-lg">⚠️</span>
+                        <AlertTriangle className="w-5 h-5" />
                         <span>
-                            DIVERGÊNCIA: {getSignalLabel(sentiment_comparison?.spx_signal || '')} vs{' '}
-                            {getSignalLabel(sentiment_comparison?.win_signal || '')}
+                            DIVERGÊNCIA: {spxInfo.label} vs {winInfo.label}
                         </span>
                     </AlertDescription>
                 </Alert>
@@ -75,13 +91,14 @@ export function MarketSentimentPanelPRO({ data }: MarketSentimentPanelPROProps) 
                     >
                         <div
                             className={cn(
-                                'text-4xl md:text-5xl font-black tracking-tight',
+                                'text-4xl md:text-5xl font-black tracking-tight flex items-center justify-center gap-3',
                                 isBullish && 'bg-gradient-to-r from-emerald-400 to-emerald-500 bg-clip-text text-transparent drop-shadow-lg',
                                 isBearish && 'text-red-400 drop-shadow-lg',
                                 !isBullish && !isBearish && 'text-slate-400'
                             )}
                         >
-                            {getSignalLabel(breadth.signal)}
+                            {breadthInfo.icon}
+                            {breadthInfo.label}
                         </div>
                         <div
                             className={cn(
@@ -119,7 +136,10 @@ export function MarketSentimentPanelPRO({ data }: MarketSentimentPanelPROProps) 
                                 style={{ width: `${Math.max(0, Math.min(100, (basis.value + 2000) / 40))}%` }}
                             />
                         </div>
-                        <div className="text-sm text-emerald-400 font-semibold">{getBasisLabel(basis.interpretation)}</div>
+                        <div className="text-sm text-emerald-400 font-semibold flex items-center gap-2">
+                            {getBasisInfo(basis.interpretation).icon}
+                            {getBasisInfo(basis.interpretation).label}
+                        </div>
                     </Card>
                 )}
 
@@ -134,15 +154,21 @@ export function MarketSentimentPanelPRO({ data }: MarketSentimentPanelPROProps) 
                         </div>
                         <div className="grid grid-cols-3 gap-2 text-xs">
                             <div className="text-center">
-                                <div className="font-bold text-emerald-400">{breadth.up}</div>
+                                <div className="font-bold text-emerald-400 flex items-center justify-center gap-1">
+                                    <ArrowUp className="w-3 h-3" /> {breadth.up}
+                                </div>
                                 <div className="text-slate-500">Altas</div>
                             </div>
                             <div className="text-center">
-                                <div className="font-bold text-slate-400">{breadth.neutral}</div>
+                                <div className="font-bold text-slate-400 flex items-center justify-center gap-1">
+                                    <Minus className="w-3 h-3" /> {breadth.neutral}
+                                </div>
                                 <div className="text-slate-500">Neutras</div>
                             </div>
                             <div className="text-center">
-                                <div className="font-bold text-red-400">{breadth.down}</div>
+                                <div className="font-bold text-red-400 flex items-center justify-center gap-1">
+                                    <ArrowDown className="w-3 h-3" /> {breadth.down}
+                                </div>
                                 <div className="text-slate-500">Baixas</div>
                             </div>
                         </div>
@@ -163,23 +189,27 @@ export function MarketSentimentPanelPRO({ data }: MarketSentimentPanelPROProps) 
                                 <div className="text-xs text-slate-500 mb-1">S&P 500</div>
                                 <div
                                     className={cn(
-                                        'text-sm font-bold',
+                                        'text-sm font-bold flex items-center justify-center gap-1',
                                         sentiment_comparison.spx_signal.includes('BUY') ? 'text-emerald-400' : 'text-red-400'
                                     )}
                                 >
-                                    {getSignalLabel(sentiment_comparison.spx_signal)}
+                                    {spxInfo.icon}
+                                    {spxInfo.label}
                                 </div>
                             </div>
-                            <div className="text-xl px-2">{hasDivergence ? '⚠️' : '✅'}</div>
+                            <div className="text-xl px-2">
+                                {hasDivergence ? <AlertTriangle className="w-6 h-6 text-yellow-500" /> : <CheckCircle2 className="w-6 h-6 text-emerald-500" />}
+                            </div>
                             <div className="text-center flex-1">
                                 <div className="text-xs text-slate-500 mb-1">WIN</div>
                                 <div
                                     className={cn(
-                                        'text-sm font-bold',
+                                        'text-sm font-bold flex items-center justify-center gap-1',
                                         sentiment_comparison.win_signal.includes('BUY') ? 'text-emerald-400' : 'text-red-400'
                                     )}
                                 >
-                                    {getSignalLabel(sentiment_comparison.win_signal)}
+                                    {winInfo.icon}
+                                    {winInfo.label}
                                 </div>
                             </div>
                         </div>
@@ -202,19 +232,23 @@ export function MarketSentimentPanelPRO({ data }: MarketSentimentPanelPROProps) 
                 <Card className="border-slate-700 bg-slate-800/30 p-6">
                     <h3 className="text-sm font-semibold text-slate-400 uppercase mb-4">Histórico de Sinais</h3>
                     <div className="space-y-2">
-                        {signal_history.slice().reverse().slice(0, 5).map((item, idx) => (
-                            <div key={idx} className="flex items-center justify-between p-2 bg-slate-900/30 rounded border border-slate-700/50">
-                                <span className="text-xs font-mono text-slate-500">{item.time}</span>
-                                <span
-                                    className={cn(
-                                        'text-xs font-bold',
-                                        item.signal.includes('BUY') ? 'text-emerald-400' : 'text-red-400'
-                                    )}
-                                >
-                                    {getSignalLabel(item.signal)}
-                                </span>
-                            </div>
-                        ))}
+                        {signal_history.slice().reverse().slice(0, 5).map((item, idx) => {
+                            const info = getSignalInfo(item.signal);
+                            return (
+                                <div key={idx} className="flex items-center justify-between p-2 bg-slate-900/30 rounded border border-slate-700/50">
+                                    <span className="text-xs font-mono text-slate-500">{item.time}</span>
+                                    <span
+                                        className={cn(
+                                            'text-xs font-bold flex items-center gap-1',
+                                            item.signal.includes('BUY') ? 'text-emerald-400' : 'text-red-400'
+                                        )}
+                                    >
+                                        {info.icon}
+                                        {info.label}
+                                    </span>
+                                </div>
+                            );
+                        })}
                     </div>
                 </Card>
             )}

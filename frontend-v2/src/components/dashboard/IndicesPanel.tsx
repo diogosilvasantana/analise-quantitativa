@@ -2,8 +2,9 @@
 
 import React from 'react';
 import { Card } from '@/components/ui/card';
-import { DashboardData } from '@/types/dashboard';
+import { DashboardData, IndiceData } from '@/types/dashboard';
 import { cn } from '@/lib/utils';
+import { Globe, TrendingUp, TrendingDown } from 'lucide-react';
 
 const INDICES_NAMES: Record<string, string> = {
     SP500: 'S&P 500',
@@ -24,7 +25,10 @@ export function IndicesPanel({ data }: IndicePanelProps) {
 
     return (
         <Card className="border-slate-700 bg-slate-800/30 p-6">
-            <h2 className="text-lg font-bold text-slate-200 mb-4">Índices Globais 🌍</h2>
+            <h2 className="text-lg font-bold text-slate-200 mb-4 flex items-center gap-2">
+                <Globe className="w-5 h-5 text-emerald-400" />
+                Índices Globais
+            </h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 {Object.entries(data.indices_globais).map(([ticker, indice]) => (
                     indice && (
@@ -46,11 +50,12 @@ export function IndicesPanel({ data }: IndicePanelProps) {
                             </div>
                             <div
                                 className={cn(
-                                    'text-sm font-semibold',
+                                    'text-sm font-semibold flex items-center gap-1',
                                     indice.var >= 0 ? 'text-emerald-400' : 'text-red-400'
                                 )}
                             >
-                                {indice.var >= 0 ? '📈' : '📉'} {indice.var_pct.toFixed(2)}%
+                                {indice.var >= 0 ? <TrendingUp className="w-4 h-4" /> : <TrendingDown className="w-4 h-4" />}
+                                {indice.var_pct.toFixed(2)}%
                             </div>
                         </div>
                     )

@@ -5,12 +5,14 @@ import { useWebSocket } from '@/hooks/useWebSocket';
 import { DashboardData, WebSocketMessage } from '@/types/dashboard';
 import { Header } from '../shared/Header';
 import { StatusBar } from '../shared/StatusBar';
+import { ErrorBoundary } from '../shared/ErrorBoundary';
 import { MarketSentimentPanelPRO } from './MarketSentimentPanelPRO';
 import { IndicesPanel } from './IndicesPanel';
 import { CommoditiesPanel } from './CommoditiesPanel';
 import { IBOVTop10Panel } from './IBOVTop10Panel';
 import { TaxesPanel } from './TaxesPanel';
 import { EconomicCalendar } from './EconomicCalendar';
+import { logger } from '@/lib/logger';
 
 export function Dashboard() {
     const [dashboardData, setDashboardData] = useState<DashboardData | null>(null);
@@ -25,7 +27,7 @@ export function Dashboard() {
         }
     }, []);
 
-    const { isConnected } = useWebSocket(
+    const { isConnected, reconnect } = useWebSocket(
         `ws://${typeof window !== 'undefined' ? window.location.hostname : 'localhost'}:8000/ws/dashboard`,
         handleWebSocketMessage
     );
@@ -33,31 +35,37 @@ export function Dashboard() {
     return (
         <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950">
             <Header />
-            <StatusBar isConnected={isConnected} lastUpdate={lastUpdate} />
+            <StatusBar
+                isConnected={isConnected}
+                lastUpdate={lastUpdate}
+                onReconnect={reconnect}
+            />
 
             <main className="container mx-auto px-4 py-8">
-                {dashboardData ? (
-                    <div className="space-y-6">
-                        <MarketSentimentPanelPRO data={dashboardData} />
+                <ErrorBoundary>
+                    {dashboardData ? (
+                        <div className="space-y-6">
+                            <MarketSentimentPanelPRO data={dashboardData} />
 
-                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                            <IndicesPanel data={dashboardData} />
-                            <CommoditiesPanel data={dashboardData} />
+                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                                <IndicesPanel data={dashboardData} />
+                                <CommoditiesPanel data={dashboardData} />
+                            </div>
+
+                            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                                <IBOVTop10Panel data={dashboardData} />
+                                <TaxesPanel data={dashboardData} />
+                            </div>
+
+                            <EconomicCalendar data={dashboardData} />
                         </div>
-
-                        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                            <IBOVTop10Panel data={dashboardData} />
-                            <TaxesPanel data={dashboardData} />
+                    ) : (
+                        <div className="flex flex-col items-center justify-center h-96 bg-slate-900/50 rounded-lg border border-slate-800">
+                            <p className="text-slate-400 text-lg">⏳ Aguardando dados do backend...</p>
+                            <p className="text-slate-500 text-sm mt-2">Verifique se o backend e o MT5 estão rodando.</p>
                         </div>
-
-                        <EconomicCalendar data={dashboardData} />
-                    </div>
-                ) : (
-                    <div className="flex flex-col items-center justify-center h-96 bg-slate-900/50 rounded-lg border border-slate-800">
-                        <p className="text-slate-400 text-lg">⏳ Aguardando dados do backend...</p>
-                        <p className="text-slate-500 text-sm mt-2">Verifique se o backend e o MT5 estão rodando.</p>
-                    </div>
-                )}
+                    )}
+                </ErrorBoundary>
             </main>
         </div>
     );

@@ -4,6 +4,7 @@ import React from 'react';
 import { Card } from '@/components/ui/card';
 import { DashboardData } from '@/types/dashboard';
 import { cn } from '@/lib/utils';
+import { Banknote } from 'lucide-react';
 
 interface TaxesPanelProps {
     data: DashboardData;
@@ -14,7 +15,10 @@ export function TaxesPanel({ data }: TaxesPanelProps) {
 
     return (
         <Card className="border-slate-700 bg-slate-800/30 p-6">
-            <h2 className="text-lg font-bold text-slate-200 mb-4">Taxas & Moedas 💵</h2>
+            <h2 className="text-lg font-bold text-slate-200 mb-4 flex items-center gap-2">
+                <Banknote className="w-5 h-5 text-green-400" />
+                Taxas & Moedas
+            </h2>
             <div className="space-y-3">
                 {Object.entries(data.taxas).map(([ticker, taxa]) => (
                     taxa && (

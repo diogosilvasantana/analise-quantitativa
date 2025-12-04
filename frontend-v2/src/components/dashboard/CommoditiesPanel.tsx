@@ -4,6 +4,7 @@ import React from 'react';
 import { Card } from '@/components/ui/card';
 import { DashboardData } from '@/types/dashboard';
 import { cn } from '@/lib/utils';
+import { Package, TrendingUp, TrendingDown } from 'lucide-react';
 
 interface CommoditiesPanelProps {
     data: DashboardData;
@@ -14,7 +15,10 @@ export function CommoditiesPanel({ data }: CommoditiesPanelProps) {
 
     return (
         <Card className="border-slate-700 bg-slate-800/30 p-6">
-            <h2 className="text-lg font-bold text-slate-200 mb-4">Commodities 🛢️</h2>
+            <h2 className="text-lg font-bold text-slate-200 mb-4 flex items-center gap-2">
+                <Package className="w-5 h-5 text-yellow-400" />
+                Commodities
+            </h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 {Object.entries(data.commodities).map(([ticker, commodity]) => (
                     commodity && (
@@ -35,11 +39,12 @@ export function CommoditiesPanel({ data }: CommoditiesPanelProps) {
                             </div>
                             <div
                                 className={cn(
-                                    'text-sm font-semibold',
+                                    'text-sm font-semibold flex items-center gap-1',
                                     commodity.var >= 0 ? 'text-emerald-400' : 'text-red-400'
                                 )}
                             >
-                                {commodity.var >= 0 ? '📈' : '📉'} {commodity.var_pct.toFixed(2)}%
+                                {commodity.var >= 0 ? <TrendingUp className="w-4 h-4" /> : <TrendingDown className="w-4 h-4" />}
+                                {commodity.var_pct.toFixed(2)}%
                             </div>
                         </div>
                     )

@@ -4,6 +4,7 @@ import React from 'react';
 import { Card } from '@/components/ui/card';
 import { DashboardData } from '@/types/dashboard';
 import { cn } from '@/lib/utils';
+import { BarChart3 } from 'lucide-react';
 
 interface IBOVTop10PanelProps {
     data: DashboardData;
@@ -14,7 +15,10 @@ export function IBOVTop10Panel({ data }: IBOVTop10PanelProps) {
 
     return (
         <Card className="border-slate-700 bg-slate-800/30 p-6">
-            <h2 className="text-lg font-bold text-slate-200 mb-4">Top 10 IBOV 🇧🇷</h2>
+            <h2 className="text-lg font-bold text-slate-200 mb-4 flex items-center gap-2">
+                <BarChart3 className="w-5 h-5 text-blue-400" />
+                Top 10 IBOV
+            </h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 {Object.entries(data.blue_chips).map(([ticker, stock]) => (
                     stock && (
