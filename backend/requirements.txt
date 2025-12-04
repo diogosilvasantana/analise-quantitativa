@@ -1,0 +1,9 @@
+fastapi==0.104.1
+uvicorn[standard]==0.24.0
+httpx==0.25.0
+beautifulsoup4==4.12.2
+redis==5.0.0
+pydantic==2.5.0
+python-dotenv==1.0.0
+loguru==0.7.2
+yfinance==0.2.33

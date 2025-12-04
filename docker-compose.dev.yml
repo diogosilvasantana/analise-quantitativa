@@ -1,0 +1,48 @@
+version: '3.8'
+
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    ports:
+      - "8000:8000"
+    environment:
+      # Variáveis de ambiente do .env.example serão carregadas pelo Python-dotenv
+      # Mas para o Docker Compose, podemos sobrescrever ou definir aqui
+      REDIS_HOST: redis
+      MT5_HOST: host.docker.internal # Permite ao container acessar o host do Docker
+      MT5_PORT: 50000
+      MT5_DI_SYMBOL: WINZ25 # Símbolo do DI no MT5
+      WS_UPDATE_INTERVAL: 5.0 # 5 segundos
+      DEBUG: "True"
+      LOG_LEVEL: INFO
+    depends_on:
+      - redis
+    volumes:
+      - ./backend/src:/app/src # Monta o código fonte para hot-reload
+      - ./backend/requirements.txt:/app/requirements.txt
+      - ./backend/.env:/app/.env # Monta o arquivo .env
+    command: uvicorn src.main:app --host 0.0.0.0 --port 8000 --reload
+
+  frontend:
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      VITE_API_URL: http://localhost:8000 # URL do backend para o frontend
+    volumes:
+      - ./frontend:/app # Monta o código fonte para hot-reload
+      - /app/node_modules # Evita que o node_modules do host sobrescreva o do container
+    command: npm run dev -- --host
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+
+networks:
+  default:
+    name: ai-trader-network

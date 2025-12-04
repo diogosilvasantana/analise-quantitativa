@@ -1,0 +1,3 @@
+MetaTrader5
+redis
+python-dotenv
