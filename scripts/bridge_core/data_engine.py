@@ -172,6 +172,8 @@ class DataEngine:
                 payload = {
                     "mt5": mt5_data,
                     "blue_chips": mt5_data.get("blue_chips", {}), # Expose at root for Frontend
+                    "breadth": mt5_data.get("breadth", {}),       # Expose at root
+                    "basis": mt5_data.get("basis", 0.0),          # Expose at root
                     "macro": self.macro_cache,
                     "tv": self.tv_cache,
                     "calendar": self.calendar_cache,

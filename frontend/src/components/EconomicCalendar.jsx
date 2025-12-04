@@ -40,17 +40,30 @@ export function EconomicCalendar({ data }) {
                         </tr>
                     </thead>
                     <tbody>
-                        {data.calendar.map((event, index) => (
-                            <tr key={index}>
-                                <td className="time">{event.time}</td>
-                                <td className="currency">{event.currency}</td>
-                                <td className="impact">{renderStars(event.impact)}</td>
-                                <td className="event-name">{event.event}</td>
-                                <td className={`actual ${event.actual ? 'highlight' : ''}`}>{event.actual || '-'}</td>
-                                <td className="forecast">{event.forecast || '-'}</td>
-                                <td className="previous">{event.previous || '-'}</td>
-                            </tr>
-                        ))}
+                        {data.calendar.map((event, index) => {
+                            // Logic to check if event passed
+                            const now = new Date();
+                            const [hours, minutes] = event.time.split(':');
+                            const eventDate = new Date();
+                            eventDate.setHours(parseInt(hours), parseInt(minutes), 0);
+
+                            // If event time is > 2 hours ago, consider passed (simple heuristic for today)
+                            // Or just check if time < now
+                            const isPassed = eventDate < now;
+                            const isHighImpact = event.impact >= 3;
+
+                            return (
+                                <tr key={index} className={`calendar-row ${isPassed ? 'passed' : ''} ${isHighImpact ? 'high-impact' : ''}`}>
+                                    <td className="time">{event.time}</td>
+                                    <td className="currency">{event.currency}</td>
+                                    <td className="impact">{renderStars(event.impact)}</td>
+                                    <td className="event-name">{event.event}</td>
+                                    <td className={`actual ${event.actual ? 'highlight' : ''}`}>{event.actual || '-'}</td>
+                                    <td className="forecast">{event.forecast || '-'}</td>
+                                    <td className="previous">{event.previous || '-'}</td>
+                                </tr>
+                            );
+                        })}
                     </tbody>
                 </table>
             </div>

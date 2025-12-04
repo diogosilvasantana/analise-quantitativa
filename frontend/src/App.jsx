@@ -5,6 +5,7 @@ import { CommoditiesPanel } from './components/CommoditiesPanel';
 import { IBOVTop10Panel } from './components/IBOVTop10Panel';
 import { TaxesPanel } from './components/TaxesPanel';
 import { EconomicCalendar } from './components/EconomicCalendar';
+import { MarketSentimentPanelPRO } from './components/MarketSentimentPanelPRO';
 import './index.css'; // Importa o CSS global
 
 function App() {
@@ -14,7 +15,14 @@ function App() {
     const handleWebSocketMessage = React.useCallback((message) => {
         if (message.type === 'DASHBOARD_UPDATE') {
             setDashboardData(message.data);
-            setLastUpdate(new Date(message.timestamp).toLocaleTimeString());
+            // Use pre-formatted time from backend (Foolproof)
+            if (message.data.formatted_time) {
+                setLastUpdate(message.data.formatted_time);
+            } else {
+                // Fallback
+                const date = new Date(message.timestamp);
+                setLastUpdate(date.toLocaleTimeString('pt-BR', { timeZone: 'America/Sao_Paulo' }));
+            }
         }
     }, []);
 
@@ -36,6 +44,7 @@ function App() {
             <main className="dashboard-grid">
                 {dashboardData ? (
                     <>
+                        <MarketSentimentPanelPRO data={dashboardData} />
                         <IndicesPanel data={dashboardData} />
                         <CommoditiesPanel data={dashboardData} />
                         <IBOVTop10Panel data={dashboardData} />

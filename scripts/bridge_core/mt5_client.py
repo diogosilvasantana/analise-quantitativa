@@ -143,6 +143,10 @@ class MT5Client:
                     "var_pct": change_pct
                 }
                 
+                # DEBUG: Log specific assets to find the "wrong percentage" cause
+                if symbol in ["VALE3", "PETR4"]:
+                     logger.info(f"🔍 {symbol}: Price={price}, Close={info.session_close}, Calc_Pct={change_pct:.2f}%")
+                
                 if change > 0: up += 1
                 elif change < 0: down += 1
                 else: neutral += 1
@@ -153,15 +157,74 @@ class MT5Client:
         data["blue_chips"] = blue_chips
         
         # 3. Breadth (Calculated from Blue Chips)
+        # Signal Logic: Check for Divergence
+        # If WIN is UP (>0.2%) but Breadth is WEAK (<5 UP) -> BEARISH DIVERGENCE
+        # If WIN is DOWN (<-0.2%) but Breadth is STRONG (>5 UP) -> BULLISH DIVERGENCE
+        
+        win_data = data.get("WIN$N") or data.get("WIN$") or data.get("WINZ25")
+        win_pct = win_data.get("var_pct", 0.0) if win_data else 0.0
+        
+        signal = "NEUTRAL"
+        if win_pct > 0.2 and up < 5:
+            signal = "BEARISH_DIVERGENCE"
+        elif win_pct < -0.2 and up > 5:
+            signal = "BULLISH_DIVERGENCE"
+        elif up >= 7:
+            signal = "STRONG_BUY"
+        elif down >= 7:
+            signal = "STRONG_SELL"
+        elif up > down:
+            signal = "BUY"
+        elif down > up:
+            signal = "SELL"
+
         data["breadth"] = {
             "up": up,
             "down": down,
             "neutral": neutral,
+            "signal": signal,
             "details": {k: v["var_pct"] for k, v in blue_chips.items()}
         }
         
-        data["basis"] = self.get_basis()
+        # 3. Basis (WIN - IBOV)
+        basis_val = 0.0
+        interpretation = "NEUTRAL"
         
+        try:
+            win = win_data.get("valor", 0) if win_data else 0
+            ibov = data.get("IBOV", {}).get("valor", 0)
+            
+            if win > 0 and ibov > 0:
+                basis_val = win - ibov
+                
+                # Interpretation Logic
+                if basis_val > 1500:
+                    interpretation = "PREMIUM_HIGH" # Muito otimista
+                elif basis_val > 500:
+                    interpretation = "PREMIUM_NORMAL" # Normal (Juros)
+                elif basis_val < -500:
+                    interpretation = "DISCOUNT_HIGH" # Pessimismo extremo
+                elif basis_val < 0:
+                    interpretation = "DISCOUNT" # Backwardation
+                else:
+                    interpretation = "FLAT"
+            else:
+                logger.warning(f"⚠️ Basis Incompleto: WIN={win} (Sym: {win_data}), IBOV={ibov}")
+                
+        except Exception as e:
+            logger.error(f"❌ Erro Basis: {e}")
+
+        data["basis"] = {
+            "value": basis_val,
+            "interpretation": interpretation,
+            "diff_yesterday": 0.0 # Placeholder for now
+        }
+        
+        # DEBUG: Log Top Assets details to understand percentage calculation
+        if "VALE3" in blue_chips:
+            v = blue_chips["VALE3"]
+            # logger.info(f"🔍 DEBUG VALE3: Price={v['valor']}, Var={v['var']}, Pct={v['var_pct']:.2f}%")
+            
         return data
 
     def shutdown(self):

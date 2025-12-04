@@ -37,6 +37,9 @@ export function IBOVTop10Panel({ data }) {
     return (
         <div className="panel-section">
             <h3>IBOV Top 10 Ações 📊</h3>
+
+            {/* Breadth & Basis Moved to MarketSentimentPanel */}
+
             <div className="grid">
                 {Object.entries(data.blue_chips).map(([name, blueChip]) =>
                     blueChip ? renderBlueChipCard(name, blueChip) : null

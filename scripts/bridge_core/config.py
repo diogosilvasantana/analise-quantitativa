@@ -19,7 +19,7 @@ class BridgeConfig:
     MT5_SYMBOLS = [
         "VALE3", "ITUB4", "PETR4", "WEGE3", "PETR3", 
         "BBDC4", "SBSP3", "BPAC11", "ITSA4", "B3SA3",
-        "DI1F27", "DI1F29", "DI1F31", "WIN$N", "WDO$N"
+        "DI1F27", "DI1F29", "DI1F31", "WIN$N", "WDO$N", "IBOV"
     ]
 
     # Investing.com Targets

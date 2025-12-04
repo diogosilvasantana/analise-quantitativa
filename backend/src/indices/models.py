@@ -60,10 +60,34 @@ class CalendarEvent(BaseModel):
     forecast: str
     previous: str
 
+class MarketBreadth(BaseModel):
+    up: int
+    down: int
+    neutral: int
+    signal: str = "NEUTRAL"
+    confidence: float = 0.0
+    details: Optional[Dict[str, float]] = None
+
+class BasisData(BaseModel):
+    value: float
+    interpretation: str
+    diff_yesterday: float = 0.0
+
+class SentimentComparison(BaseModel):
+    spx_signal: str
+    win_signal: str
+    divergence: bool
+    status: str
+
 class DashboardData(BaseModel):
     indices_globais: IndicesGlobais
     commodities: Commodities
     blue_chips: IBOVTop10
     taxas: Taxas
     calendar: List[CalendarEvent] = []
+    breadth: Optional[MarketBreadth] = None
+    basis: Optional[BasisData] = None
+    sentiment_comparison: Optional[SentimentComparison] = None
+    signal_history: List[Dict[str, str]] = []
     timestamp: str
+    formatted_time: str
