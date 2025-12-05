@@ -86,23 +86,25 @@ class AuditorAgent:
             Analyze the following code:
             {code_context}
 
-            RETURN ONLY A JSON ARRAY with the following structure for each issue found:
-            [
-              {{
-                "id": "unique_short_id",
-                "file_path": "path/to/file.py",
-                "category": "LOGIC" | "SECURITY" | "UX" | "VISUAL" | "OPTIMIZATION",
-                "severity": "CRITICAL" | "WARNING" | "INFO",
-                "title": "Short Title of the Issue",
-                "description": "Detailed explanation of why this is wrong.",
-                "fixed_code": "The FULL content of the file with the fix applied."
-              }}
-            ]
+            RETURN A JSON OBJECT with the following structure:
+            {{
+              "file_path": "path/to/file.py",
+              "fixed_code": "The FULL content of the file with ALL fixes applied. MUST ESCAPE NEWLINES (\\n) AND QUOTES (\\\")!",
+              "issues": [
+                  {{
+                    "id": "unique_short_id",
+                    "category": "LOGIC" | "SECURITY" | "UX" | "VISUAL" | "OPTIMIZATION",
+                    "severity": "CRITICAL" | "WARNING" | "INFO",
+                    "title": "Short Title of the Issue",
+                    "description": "Detailed explanation of why this is wrong."
+                  }}
+              ]
+            }}
             
             IMPORTANT: 
             1. Return ONLY valid JSON. No markdown formatting.
             2. DO NOT include 'original_code' in the JSON. I will read it from disk.
-            3. In 'fixed_code', return the COMPLETE file content.
+            3. The 'fixed_code' must contain the COMPLETE file content with ALL fixes for ALL issues applied.
             4. Be creative with UX/Visual suggestions.
             """
 
@@ -114,7 +116,7 @@ class AuditorAgent:
                     model="claude-sonnet-4-20250514",
                     max_tokens=8192,
                     temperature=0,
-                    system="You are an expert code auditor. Output strict JSON.",
+                    system="You are an expert code auditor. Output strict JSON. Escape all newlines in strings.",
                     messages=[
                         {"role": "user", "content": prompt}
                     ]
@@ -123,19 +125,45 @@ class AuditorAgent:
                 response_text = message.content[0].text
                 
                 try:
-                    if "```json" in response_text:
-                        response_text = response_text.split("```json")[1].split("```")[0]
-                    elif "```" in response_text:
-                        response_text = response_text.split("```")[1].split("```")[0]
+                    # Robust JSON Extraction
+                    def clean_json(text):
+                        # Remove markdown code blocks
+                        if "```json" in text:
+                            text = text.split("```json")[1].split("```")[0]
+                        elif "```" in text:
+                            text = text.split("```")[1].split("```")[0]
+                        
+                        # Find object brackets
+                        start = text.find('{')
+                        end = text.rfind('}')
+                        
+                        if start != -1 and end != -1:
+                            return text[start:end+1]
+                        return text.strip()
+
+                    json_str = clean_json(response_text)
                     
-                    start_idx = response_text.find('[')
-                    end_idx = response_text.rfind(']')
+                    # Attempt to parse
+                    try:
+                        result_data = json.loads(json_str, strict=False)
+                    except json.JSONDecodeError as e:
+                        logger.error(f"Invalid JSON structure: {e} | Content: {json_str[:200]}...")
+                        continue
                     
-                    if start_idx != -1 and end_idx != -1:
-                        response_text = response_text[start_idx:end_idx+1]
+                    # Flatten structure for Frontend
+                    # The frontend expects a flat list of issues, each with 'fixed_code'
                     
-                    batch_issues = json.loads(response_text.strip())
+                    fixed_code = result_data.get("fixed_code", "")
+                    file_path = result_data.get("file_path", "")
+                    issues_list = result_data.get("issues", [])
                     
+                    batch_issues = []
+                    for issue in issues_list:
+                        # Inject file_path and fixed_code into each issue
+                        issue["file_path"] = file_path
+                        issue["fixed_code"] = fixed_code
+                        batch_issues.append(issue)
+
                     for issue in batch_issues:
                         path = issue.get("file_path")
                         if path in batch_file_map:
@@ -145,8 +173,8 @@ class AuditorAgent:
 
                     all_issues.extend(batch_issues)
 
-                except json.JSONDecodeError as e:
-                    logger.error(f"JSON Parse Error in batch: {e}")
+                except Exception as e:
+                    logger.error(f"JSON Processing Error in batch: {e}")
                     continue
 
             except Exception as e:

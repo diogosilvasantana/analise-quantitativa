@@ -29,83 +29,30 @@ class RollbackRequest(BaseModel):
     file_path: str
     backup_id: str
 
-import requests
-
-# ...
+import httpx
+import json
 
 @router.get("/run")
 async def run_audit():
     """
     Triggers the AI Auditor (running in ai-service) to analyze critical files.
     """
-    project_root = os.getcwd() # In backend container, this is /app (which is backend/src?? No, check Dockerfile)
-    # Backend Dockerfile: WORKDIR /app. Volumes: ./backend/src:/app/src.
-    # So os.getcwd() is /app.
-    # But we want paths relative to the REAL project root (e:\projetos\ai-trader-pro).
-    # The backend container sees:
-    # /app/src/...
-    # /app/scripts/... (mounted)
-    
-    # We need to construct paths that ai-service can understand.
-    # ai-service has /app/project_root mounted to ./.
-    
-    # Let's list the files we want to audit, relative to the REPO ROOT.
-    # We know the structure:
-    # scripts/bridge_core/...
-    # backend/src/...
-    # frontend-v2/src/...
-    
-    files_to_audit = []
-    
-    # 1. Scripts (Mounted at /app/scripts in Backend)
-    if os.path.exists("/app/scripts"):
-        for root, _, files in os.walk("/app/scripts"):
-            for file in files:
-                if file.endswith(".py"):
-                    # /app/scripts/bridge_core/flow.py -> scripts/bridge_core/flow.py
-                    rel_path = os.path.relpath(os.path.join(root, file), "/app")
-                    files_to_audit.append(rel_path)
+    async def proxy_generator():
+        try:
+            async with httpx.AsyncClient(timeout=300.0) as client:
+                async with client.stream("POST", "http://ai-service:8001/audit/run", json={"file_paths": []}) as response:
+                    if response.status_code != 200:
+                        error_text = await response.aread()
+                        yield json.dumps({"status": "error", "message": f"AI Service Error: {error_text.decode()}"}).encode()
+                        return
 
-    # 2. Backend Src (Mounted at /app/src)
-    if os.path.exists("/app/src"):
-        for root, _, files in os.walk("/app/src"):
-            for file in files:
-                if file.endswith(".py"):
-                    # /app/src/main.py -> backend/src/main.py (Wait, /app/src maps to backend/src)
-                    # So rel_path from /app is src/main.py. We need to prepend backend/
-                    rel = os.path.relpath(os.path.join(root, file), "/app/src")
-                    files_to_audit.append(f"backend/src/{rel}")
+                    async for chunk in response.aiter_bytes():
+                        yield chunk
+        except Exception as e:
+            yield json.dumps({"status": "error", "message": f"Failed to connect to AI Service: {str(e)}"}).encode()
 
-    # 3. Frontend (Not mounted in Backend! We can't walk it from here if we don't mount it)
-    # We need to mount frontend-v2 to backend if we want backend to discover files?
-    # OR, we just tell ai-service "Audit these directories" and let IT discover them.
-    # YES. That's much better.
-    
-    # Let's change the API. Instead of sending file list, we send "scan_request".
-    # But the user might want specific files.
-    # For now, let's just ask ai-service to scan the default directories.
-    
-    try:
-        # Stream the response from ai-service
-        req = requests.post(
-            "http://ai-service:8001/audit/run", 
-            json={"file_paths": []}, # Empty list = scan defaults
-            stream=True
-        )
-        
-        if req.status_code != 200:
-             return {"status": "error", "message": f"AI Service Error: {req.text}"}
-
-        # Generator to yield chunks
-        def proxy_generator():
-            for chunk in req.iter_content(chunk_size=None):
-                yield chunk
-
-        from fastapi.responses import StreamingResponse
-        return StreamingResponse(proxy_generator(), media_type="application/x-ndjson")
-
-    except Exception as e:
-        return {"status": "error", "message": f"Failed to connect to AI Service: {str(e)}"}
+    from fastapi.responses import StreamingResponse
+    return StreamingResponse(proxy_generator(), media_type="application/x-ndjson")
 
 @router.post("/fix")
 async def apply_fix(request: FixRequest):

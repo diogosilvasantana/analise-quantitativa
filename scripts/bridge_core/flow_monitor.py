@@ -153,12 +153,27 @@ class FlowMonitor:
                         bear_power += ibov_score
                         details.append(f"Blue Chips Alta ({int(ibov_score)})")
 
+        # --- 4. Divergence Penalty (Safety Check) ---
+        # If Bull Power is high (Flow) but Bear Power is significant (Price/Macro),
+        # we must reduce the Bull Score to avoid "Strong Buy" in a crash.
+        
+        if bull_power > 60 and bear_power > 30:
+            penalty = bear_power * 0.5
+            bull_power -= penalty
+            details.append(f"Penalidade Divergência (-{int(penalty)})")
+            
         # Cap at 100
-        bull_power = min(bull_power, 100)
-        bear_power = min(bear_power, 100)
+        bull_power = min(max(bull_power, 0), 100)
+        bear_power = min(max(bear_power, 0), 100)
         
         # Calculate Net Score (0-15 scale)
         net_raw = bull_power - bear_power
+        
+        # Improved Scaling: Center at 7.5 (Neutral)
+        # Range -100 to +100 maps to 0 to 15
+        # -100 -> 0
+        # 0 -> 7.5
+        # +100 -> 15
         score_scaled = ((net_raw + 100) / 200) * 15
         
         return {
