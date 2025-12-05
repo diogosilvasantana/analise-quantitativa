@@ -83,6 +83,13 @@ class SentimentComparison(BaseModel):
     divergence: bool
     status: str
 
+class VolatilityRegime(BaseModel):
+    status: str
+    ratio: float
+    atr5: float
+    atr20: float
+    implication: str
+
 class DashboardData(BaseModel):
     indices_globais: IndicesGlobais
     commodities: Commodities
@@ -91,6 +98,7 @@ class DashboardData(BaseModel):
     calendar: List[CalendarEvent] = []
     breadth: Optional[MarketBreadth] = None
     basis: Optional[BasisData] = None
+    volatility: Optional[VolatilityRegime] = None # New Field
     sentiment_comparison: Optional[SentimentComparison] = None
     signal_history: List[Dict[str, str]] = []
     ai_analysis: Optional[Dict[str, Any]] = None

@@ -284,3 +284,60 @@ class MT5Client:
                 "real_volume": int(rate['real_volume'])
             })
         return data
+
+    def calculate_atr(self, rates, period=14):
+        """
+        Calculates ATR (Average True Range).
+        rates: List of dicts with 'high', 'low', 'close'.
+        """
+        if len(rates) < period + 1:
+            return 0.0
+            
+        tr_list = []
+        for i in range(1, len(rates)):
+            high = rates[i]['high']
+            low = rates[i]['low']
+            prev_close = rates[i-1]['close']
+            
+            tr = max(high - low, abs(high - prev_close), abs(low - prev_close))
+            tr_list.append(tr)
+            
+        if not tr_list:
+            return 0.0
+            
+        # Simple Moving Average of TR (Wilder's is better but SMA is fine for this proxy)
+        # Using simple slicing for last 'period' TRs
+        relevant_tr = tr_list[-period:]
+        if len(relevant_tr) < period:
+            return 0.0
+            
+        return sum(relevant_tr) / period
+
+    def get_volatility_regime(self, symbol: str):
+        """
+        Calculates Volatility Regime based on ATR(5) vs ATR(20).
+        """
+        # Fetch last 30 daily candles to be safe
+        rates = self.get_history(symbol, "D1", 30)
+        if not rates or len(rates) < 25:
+            return None
+            
+        atr5 = self.calculate_atr(rates, 5)
+        atr20 = self.calculate_atr(rates, 20)
+        
+        if atr20 == 0:
+            return None
+            
+        ratio = atr5 / atr20
+        status = "EXPANDING" if atr5 > atr20 else "CONTRACTING"
+        
+        # Calculate average daily range in points (last 5 days)
+        current_range = atr5
+        
+        return {
+            "status": status,
+            "ratio": round(ratio, 2),
+            "atr5": round(atr5, 2),
+            "atr20": round(atr20, 2),
+            "implication": "Stops devem ser MAIORES (Volatilidade Alta)" if status == "EXPANDING" else "Stops podem ser CURTOS (Volatilidade Baixa)"
+        }

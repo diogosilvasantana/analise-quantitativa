@@ -169,11 +169,18 @@ class DataEngine:
                 self.missing_in_mt5 = expected_symbols - found_symbols
                 
                 # 2. Aggregate
+                # Calculate Volatility Regime (WIN) - Fast enough to do here or cache it
+                # Since it uses D1 history, we can cache it, but for now let's compute on the fly if history is cached in MT5Client
+                # Actually MT5Client fetches fresh history. Let's do it in _fetch_history_loop and cache it in DataEngine?
+                # Simpler: Just call it here. It fetches 30 candles. Fast.
+                volatility_regime = self.mt5.get_volatility_regime("WIN$N") or self.mt5.get_volatility_regime("WIN$")
+                
                 payload = {
                     "mt5": mt5_data,
                     "blue_chips": mt5_data.get("blue_chips", {}), # Expose at root for Frontend
                     "breadth": mt5_data.get("breadth", {}),       # Expose at root
                     "basis": mt5_data.get("basis", 0.0),          # Expose at root
+                    "volatility": volatility_regime,              # New Field
                     "macro": self.macro_cache,
                     "tv": self.tv_cache,
                     "calendar": self.calendar_cache,

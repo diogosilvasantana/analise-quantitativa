@@ -48,6 +48,11 @@ class MarketAnalyzer:
         win_ajuste = get_val(dashboard, ['win', 'ajuste'])
         wdo_ajuste = get_val(dashboard, ['wdo', 'ajuste'])
         
+        # Volatility Regime (The "Cherry on Top")
+        volatility = dashboard.get('volatility', {})
+        vol_status = volatility.get('status', 'NEUTRO')
+        vol_implication = volatility.get('implication', 'Aguardando dados')
+        
         # Calendar (Already filtered by Bridge for High Impact)
         calendar = dashboard.get('calendar', [])
         
@@ -94,6 +99,7 @@ class MarketAnalyzer:
            - WDO Ajuste (Imã): {wdo_ajuste}
            - Juros DI1F27: {di27_change}%
            - Juros DI1F29: {di29_change}%
+           - **Regime de Volatilidade (ATR):** {vol_status} ({vol_implication})
            
         4. **Técnico (Ontem):**
            - WIN Fechamento: {win_close}

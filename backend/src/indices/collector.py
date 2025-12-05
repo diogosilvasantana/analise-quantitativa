@@ -106,6 +106,11 @@ class IndicesCollector:
                     else:
                         basis_value = BasisData(value=float(data["basis"]), interpretation="LEGACY")
 
+                # Volatility Regime
+                volatility_data = None
+                if "volatility" in data and data["volatility"]:
+                    volatility_data = VolatilityRegime(**data["volatility"])
+
                 # 5. Advanced Sentiment Logic (Comparison & History)
                 current_time = datetime.now(timezone(timedelta(hours=-3))).strftime("%H:%M:%S")
                 
@@ -173,6 +178,7 @@ class IndicesCollector:
             calendar=calendar_events,
             breadth=breadth_data,
             basis=basis_value,
+            volatility=volatility_data,
             sentiment_comparison=sentiment_comparison,
             signal_history=self.signal_history,
             ai_analysis=ai_analysis,
