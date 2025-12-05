@@ -91,8 +91,8 @@ class VolatilityRegime(BaseModel):
     implication: str
 
 class QuantDashboardData(BaseModel):
-    flow: Dict[str, int]
-    score: Dict[str, Any]
+    flows: Dict[str, Dict[str, int]] # Key: Asset (WIN/WDO), Value: Flow Dict
+    score: Dict[str, Dict[str, Any]] # Key: Asset (WIN/WDO), Value: Score Dict
 
 class DashboardData(BaseModel):
     indices_globais: IndicesGlobais

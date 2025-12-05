@@ -176,9 +176,9 @@ class DataEngine:
                 volatility_regime = self.mt5.get_volatility_regime("WIN$N") or self.mt5.get_volatility_regime("WIN$")
                 
                 # Check Flow Data
-                flow_data = self.flow_monitor.check_update() or self.flow_monitor.current_flow
+                flow_data = self.flow_monitor.check_update() or self.flow_monitor.current_flows
                 
-                # Calculate Quant Score
+                # Calculate Quant Score (Pass all flows, logic inside handles WIN focus)
                 quant_score = self.flow_monitor.calculate_quant_score(flow_data, self.macro_cache, {})
                 
                 payload = {
@@ -188,7 +188,7 @@ class DataEngine:
                     "basis": mt5_data.get("basis", 0.0),          
                     "volatility": volatility_regime,
                     "quant_dashboard": {
-                        "flow": flow_data,
+                        "flows": flow_data, # Renamed to flows (plural) to indicate dict of assets
                         "score": quant_score
                     },
                     "macro": self.macro_cache,
