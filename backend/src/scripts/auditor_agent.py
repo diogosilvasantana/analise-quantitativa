@@ -86,8 +86,8 @@ class AuditorAgent:
         # 3. Call Claude
         try:
             message = self.client.messages.create(
-                model="claude-3-5-sonnet-20241022",
-                max_tokens=4096,
+                model="claude-sonnet-4-20250514",
+                max_tokens=4000,
                 temperature=0,
                 system="You are an expert code auditor. Output strict JSON.",
                 messages=[

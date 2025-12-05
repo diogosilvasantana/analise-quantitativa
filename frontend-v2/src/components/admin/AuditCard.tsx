@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { AlertTriangle, CheckCircle, RotateCcw, Play, Loader2, FileCode } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
-interface AuditIssue {
+export interface AuditIssue {
     id: string;
     file_path: string;
     category?: "LOGIC" | "SECURITY" | "UX" | "VISUAL" | "OPTIMIZATION";

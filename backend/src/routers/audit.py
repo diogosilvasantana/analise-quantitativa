@@ -4,10 +4,10 @@ import time
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 from typing import List, Optional
-from src.scripts.auditor_agent import AuditorAgent
+# from src.scripts.auditor_agent import AuditorAgent
 
 router = APIRouter(prefix="/audit", tags=["Audit"])
-agent = AuditorAgent()
+# agent = AuditorAgent()
 
 # Configuration
 BACKUP_DIR = os.path.join(os.getcwd(), "backups")
@@ -29,36 +29,83 @@ class RollbackRequest(BaseModel):
     file_path: str
     backup_id: str
 
+import requests
+
+# ...
+
 @router.get("/run")
 async def run_audit():
     """
-    Triggers the AI Auditor to analyze critical files.
+    Triggers the AI Auditor (running in ai-service) to analyze critical files.
     """
-    abs_paths = []
+    project_root = os.getcwd() # In backend container, this is /app (which is backend/src?? No, check Dockerfile)
+    # Backend Dockerfile: WORKDIR /app. Volumes: ./backend/src:/app/src.
+    # So os.getcwd() is /app.
+    # But we want paths relative to the REAL project root (e:\projetos\ai-trader-pro).
+    # The backend container sees:
+    # /app/src/...
+    # /app/scripts/... (mounted)
     
-    # Recursively find .py, .tsx, .ts, .css files
-    for relative_dir in TARGET_DIRS:
-        dir_path = os.path.abspath(relative_dir)
-        if not os.path.exists(dir_path):
-            continue
-            
-        for root, _, files in os.walk(dir_path):
+    # We need to construct paths that ai-service can understand.
+    # ai-service has /app/project_root mounted to ./.
+    
+    # Let's list the files we want to audit, relative to the REPO ROOT.
+    # We know the structure:
+    # scripts/bridge_core/...
+    # backend/src/...
+    # frontend-v2/src/...
+    
+    files_to_audit = []
+    
+    # 1. Scripts (Mounted at /app/scripts in Backend)
+    if os.path.exists("/app/scripts"):
+        for root, _, files in os.walk("/app/scripts"):
             for file in files:
-                if file.endswith(('.py', '.tsx', '.ts', '.css')):
-                    # Skip some files if needed (e.g., tests, node_modules)
-                    if "test" in file or "node_modules" in root:
-                        continue
-                    abs_paths.append(os.path.join(root, file))
+                if file.endswith(".py"):
+                    # /app/scripts/bridge_core/flow.py -> scripts/bridge_core/flow.py
+                    rel_path = os.path.relpath(os.path.join(root, file), "/app")
+                    files_to_audit.append(rel_path)
 
-    # Limit to top 20 files to avoid token limits for now (or implement chunking later)
-    # For now, let's prioritize recently modified files or just take a subset
-    # abs_paths = sorted(abs_paths, key=os.path.getmtime, reverse=True)[:20]
+    # 2. Backend Src (Mounted at /app/src)
+    if os.path.exists("/app/src"):
+        for root, _, files in os.walk("/app/src"):
+            for file in files:
+                if file.endswith(".py"):
+                    # /app/src/main.py -> backend/src/main.py (Wait, /app/src maps to backend/src)
+                    # So rel_path from /app is src/main.py. We need to prepend backend/
+                    rel = os.path.relpath(os.path.join(root, file), "/app/src")
+                    files_to_audit.append(f"backend/src/{rel}")
+
+    # 3. Frontend (Not mounted in Backend! We can't walk it from here if we don't mount it)
+    # We need to mount frontend-v2 to backend if we want backend to discover files?
+    # OR, we just tell ai-service "Audit these directories" and let IT discover them.
+    # YES. That's much better.
     
-    if not abs_paths:
-        return {"status": "error", "message": "No target files found."}
+    # Let's change the API. Instead of sending file list, we send "scan_request".
+    # But the user might want specific files.
+    # For now, let's just ask ai-service to scan the default directories.
+    
+    try:
+        # Stream the response from ai-service
+        req = requests.post(
+            "http://ai-service:8001/audit/run", 
+            json={"file_paths": []}, # Empty list = scan defaults
+            stream=True
+        )
         
-    issues = agent.analyze_codebase(abs_paths)
-    return issues
+        if req.status_code != 200:
+             return {"status": "error", "message": f"AI Service Error: {req.text}"}
+
+        # Generator to yield chunks
+        def proxy_generator():
+            for chunk in req.iter_content(chunk_size=None):
+                yield chunk
+
+        from fastapi.responses import StreamingResponse
+        return StreamingResponse(proxy_generator(), media_type="application/x-ndjson")
+
+    except Exception as e:
+        return {"status": "error", "message": f"Failed to connect to AI Service: {str(e)}"}
 
 @router.post("/fix")
 async def apply_fix(request: FixRequest):

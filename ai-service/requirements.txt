@@ -1,0 +1,11 @@
+fastapi
+uvicorn[standard]
+requests
+pandas
+anthropic>=0.20.0
+schedule
+python-dotenv
+feedparser
+redis
+pydantic
+loguru
