@@ -13,14 +13,12 @@ agent = AuditorAgent()
 BACKUP_DIR = os.path.join(os.getcwd(), "backups")
 os.makedirs(BACKUP_DIR, exist_ok=True)
 
-# Target Files to Audit (Hardcoded for safety/simplicity)
-TARGET_FILES = [
-    "scripts/bridge_core/flow_monitor.py",
-    "scripts/bridge_core/investing_client.py",
-    "frontend-v2/src/app/page.tsx",
-    "frontend-v2/src/components/dashboard/IndicesPanel.tsx",
-    "frontend-v2/src/components/dashboard/QuantPanel.tsx",
-    "frontend-v2/src/app/globals.css",
+# Target Directories to Audit
+TARGET_DIRS = [
+    "scripts/bridge_core",
+    "backend/src",
+    "frontend-v2/src/app",
+    "frontend-v2/src/components"
 ]
 
 class FixRequest(BaseModel):
@@ -36,8 +34,25 @@ async def run_audit():
     """
     Triggers the AI Auditor to analyze critical files.
     """
-    # Resolve absolute paths
-    abs_paths = [os.path.abspath(f) for f in TARGET_FILES if os.path.exists(os.path.abspath(f))]
+    abs_paths = []
+    
+    # Recursively find .py, .tsx, .ts, .css files
+    for relative_dir in TARGET_DIRS:
+        dir_path = os.path.abspath(relative_dir)
+        if not os.path.exists(dir_path):
+            continue
+            
+        for root, _, files in os.walk(dir_path):
+            for file in files:
+                if file.endswith(('.py', '.tsx', '.ts', '.css')):
+                    # Skip some files if needed (e.g., tests, node_modules)
+                    if "test" in file or "node_modules" in root:
+                        continue
+                    abs_paths.append(os.path.join(root, file))
+
+    # Limit to top 20 files to avoid token limits for now (or implement chunking later)
+    # For now, let's prioritize recently modified files or just take a subset
+    # abs_paths = sorted(abs_paths, key=os.path.getmtime, reverse=True)[:20]
     
     if not abs_paths:
         return {"status": "error", "message": "No target files found."}

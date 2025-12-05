@@ -14,6 +14,6 @@ start "AI-TRADER-PRO Bridge" cmd /k "python scripts/bridge.py"
 :: start "AI-TRADER-PRO Analyst" cmd /k "python ai-analyst/main.py"
 
 echo ✅ Tudo iniciado!
-echo 🌐 Frontend: http://localhost:3000
+echo 🌐 Frontend V2: http://localhost:3001
 echo 📊 Bridge rodando na outra janela.
 pause
