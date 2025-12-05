@@ -179,7 +179,7 @@ class DataEngine:
                 flow_data = self.flow_monitor.check_update() or self.flow_monitor.current_flows
                 
                 # Calculate Quant Score (Pass all flows, logic inside handles WIN focus)
-                quant_score = self.flow_monitor.calculate_quant_score(flow_data, self.macro_cache, {})
+                quant_score = self.flow_monitor.calculate_quant_score(flow_data, self.macro_cache, mt5_data.get("blue_chips", {}))
                 
                 payload = {
                     "mt5": mt5_data,

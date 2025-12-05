@@ -47,8 +47,12 @@ const QuantPanel: React.FC<QuantPanelProps> = ({ data }) => {
                 </div>
             </div>
             <div className="text-right">
-                <Badge className={score >= 7 ? "bg-green-500/20 text-green-400 text-[10px] px-1" : "bg-slate-700 text-slate-400 text-[10px] px-1"}>
-                    {score >= 7 ? "COMPRA" : "NEUTRO"}
+                <Badge className={
+                    score >= 10 ? "bg-green-500/20 text-green-400 text-[10px] px-1" :
+                        score <= 5 ? "bg-red-500/20 text-red-400 text-[10px] px-1" :
+                            "bg-yellow-500/20 text-yellow-400 text-[10px] px-1"
+                }>
+                    {score >= 10 ? "COMPRA FORTE" : score >= 7 ? "COMPRA" : score <= 5 ? "VENDA" : "NEUTRO"}
                 </Badge>
             </div>
         </div>

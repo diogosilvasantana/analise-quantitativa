@@ -84,6 +84,34 @@ export interface AIAnalysisData {
     timestamp?: string;
 }
 
+export interface VolatilityRegime {
+    status: string;
+    ratio: number;
+    atr5: number;
+    atr20: number;
+    implication: string;
+}
+
+export interface QuantDashboardData {
+    flows: {
+        [key: string]: {
+            FOREIGN: number;
+            INSTITUTIONAL: number;
+            RETAIL: number;
+        }
+    };
+    score: {
+        [key: string]: {
+            score: number;
+            bull_power: number;
+            bear_power: number;
+            max_score: number;
+            details: string[];
+            sentiment: string;
+        }
+    };
+}
+
 export interface DashboardData {
     formatted_time: string;
     timestamp: string;
@@ -97,6 +125,10 @@ export interface DashboardData {
     sentiment_comparison?: SentimentComparison;
     signal_history?: SignalHistoryItem[];
     ai_analysis?: AIAnalysisData;
+    volatility?: VolatilityRegime;
+    quant_dashboard?: QuantDashboardData;
+    win?: IndiceData;
+    wdo?: IndiceData;
 }
 
 export interface WebSocketMessage {

@@ -11,7 +11,9 @@ from src.utils.logging_config import setup_logging
 from src.indices.collector import IndicesCollector
 from src.cache.redis_manager import RedisManager
 from src.websocket.manager import ConnectionManager
+from src.websocket.manager import ConnectionManager
 from src.websocket.broadcaster import WebSocketBroadcaster
+from src.routers import audit
 
 # Setup logging
 setup_logging()
@@ -58,9 +60,10 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"], # Permite todas as origens para desenvolvimento
     allow_credentials=True,
-    allow_methods=["*"],
     allow_headers=["*"],
 )
+
+app.include_router(audit.router)
 
 @app.get("/api/dashboard_data")
 async def get_dashboard_data():

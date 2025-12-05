@@ -65,30 +65,44 @@ void OnTradeTransaction(const MqlTradeTransaction& trans,
 //+------------------------------------------------------------------+
 //| Custom: Process Time & Sales                                     |
 //+------------------------------------------------------------------+
+ulong ExtLastTickMsc = 0;
+
 void ProcessTimeAndSales()
 {
    MqlTick ticks[];
-   // Get last 100 trades. For production, you should track the last processed tick time
-   // to avoid duplicates or missing trades. For this prototype, we snapshot last 100.
-   int received = CopyTicks(_Symbol, ticks, COPY_TICKS_TRADE, 0, 100); 
+   // Fetch ticks since the last processed tick (in milliseconds)
+   // If ExtLastTickMsc is 0, fetch last 1000 to initialize, but don't process all as new flow?
+   // Better: Initialize ExtLastTickMsc in OnInit.
+   
+   if(ExtLastTickMsc == 0)
+   {
+       // First run: Get last tick time to start monitoring from NOW
+       MqlTick lastTick[];
+       if(CopyTicks(_Symbol, lastTick, COPY_TICKS_ALL, 0, 1) > 0)
+       {
+           ExtLastTickMsc = lastTick[0].time_msc;
+       }
+       return;
+   }
+
+   // Get all ticks since last checked time
+   int received = CopyTicks(_Symbol, ticks, COPY_TICKS_TRADE, ExtLastTickMsc + 1, 0);
    
    if(received > 0)
    {
       for(int i=0; i<received; i++)
       {
-         // Synthetic Logic (Aggressor):
-         // If Price > Last Price -> Buyer Aggressor
-         // If Price < Last Price -> Seller Aggressor
-         
-         long vol = (long)ticks[i].volume; // Explicit cast to avoid warning
+         // Update last tick time
+         if(ticks[i].time_msc > ExtLastTickMsc) ExtLastTickMsc = ticks[i].time_msc;
+
+         long vol = (long)ticks[i].volume; 
          
          if((ticks[i].flags & TICK_FLAG_BUY) == TICK_FLAG_BUY)
          {
              // Buyer Aggressor
-             // Simulate attribution based on volume size
-             if(vol >= 50) ExtForeignVolume += vol; // Big lots -> Foreign
-             else if(vol >= 10) ExtInstitutionalVolume += vol; // Medium -> Inst
-             else ExtRetailVolume += vol; // Small -> Retail
+             if(vol >= 50) ExtForeignVolume += vol; 
+             else if(vol >= 10) ExtInstitutionalVolume += vol; 
+             else ExtRetailVolume += vol; 
          }
          else if((ticks[i].flags & TICK_FLAG_SELL) == TICK_FLAG_SELL)
          {
