@@ -13,6 +13,7 @@ import { IBOVTop10Panel } from './IBOVTop10Panel';
 import { TaxesPanel } from './TaxesPanel';
 import { EconomicCalendar } from './EconomicCalendar';
 import { AIAnalysisPanel } from './AIAnalysisPanel';
+import QuantPanel from './QuantPanel';
 import { logger } from '@/lib/logger';
 
 export function Dashboard() {
@@ -55,6 +56,7 @@ export function Dashboard() {
                             </div>
 
                             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                                <QuantPanel data={dashboardData} />
                                 <IBOVTop10Panel data={dashboardData} />
                                 <TaxesPanel data={dashboardData} />
                             </div>

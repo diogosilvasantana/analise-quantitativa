@@ -90,6 +90,10 @@ class VolatilityRegime(BaseModel):
     atr20: float
     implication: str
 
+class QuantDashboardData(BaseModel):
+    flow: Dict[str, int]
+    score: Dict[str, Any]
+
 class DashboardData(BaseModel):
     indices_globais: IndicesGlobais
     commodities: Commodities
@@ -98,11 +102,12 @@ class DashboardData(BaseModel):
     calendar: List[CalendarEvent] = []
     breadth: Optional[MarketBreadth] = None
     basis: Optional[BasisData] = None
-    volatility: Optional[VolatilityRegime] = None # New Field
+    volatility: Optional[VolatilityRegime] = None
+    quant_dashboard: Optional[QuantDashboardData] = None # New Field
     sentiment_comparison: Optional[SentimentComparison] = None
     signal_history: List[Dict[str, str]] = []
     ai_analysis: Optional[Dict[str, Any]] = None
-    win: Optional[IndiceData] = None # Snapshot WIN
-    wdo: Optional[IndiceData] = None # Snapshot WDO
+    win: Optional[IndiceData] = None 
+    wdo: Optional[IndiceData] = None 
     timestamp: str
     formatted_time: str

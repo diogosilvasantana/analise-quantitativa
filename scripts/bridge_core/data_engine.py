@@ -8,6 +8,7 @@ from .mt5_client import MT5Client
 from .investing_client import InvestingClient
 from .calendar_client import CalendarClient
 from .redis_client import RedisClient
+from .flow_monitor import FlowMonitor
 
 logger = logging.getLogger("Bridge.DataEngine")
 
@@ -19,7 +20,9 @@ class DataEngine:
         self.mt5 = MT5Client()
         self.investing = InvestingClient()
         self.calendar = CalendarClient()
+        self.calendar = CalendarClient()
         self.redis = RedisClient()
+        self.flow_monitor = FlowMonitor()
         
         # State/Cache
         self.macro_cache = {}
@@ -169,18 +172,25 @@ class DataEngine:
                 self.missing_in_mt5 = expected_symbols - found_symbols
                 
                 # 2. Aggregate
-                # Calculate Volatility Regime (WIN) - Fast enough to do here or cache it
-                # Since it uses D1 history, we can cache it, but for now let's compute on the fly if history is cached in MT5Client
-                # Actually MT5Client fetches fresh history. Let's do it in _fetch_history_loop and cache it in DataEngine?
-                # Simpler: Just call it here. It fetches 30 candles. Fast.
+                # Calculate Volatility Regime (WIN)
                 volatility_regime = self.mt5.get_volatility_regime("WIN$N") or self.mt5.get_volatility_regime("WIN$")
+                
+                # Check Flow Data
+                flow_data = self.flow_monitor.check_update() or self.flow_monitor.current_flow
+                
+                # Calculate Quant Score
+                quant_score = self.flow_monitor.calculate_quant_score(flow_data, self.macro_cache, {})
                 
                 payload = {
                     "mt5": mt5_data,
-                    "blue_chips": mt5_data.get("blue_chips", {}), # Expose at root for Frontend
-                    "breadth": mt5_data.get("breadth", {}),       # Expose at root
-                    "basis": mt5_data.get("basis", 0.0),          # Expose at root
-                    "volatility": volatility_regime,              # New Field
+                    "blue_chips": mt5_data.get("blue_chips", {}), 
+                    "breadth": mt5_data.get("breadth", {}),       
+                    "basis": mt5_data.get("basis", 0.0),          
+                    "volatility": volatility_regime,
+                    "quant_dashboard": {
+                        "flow": flow_data,
+                        "score": quant_score
+                    },
                     "macro": self.macro_cache,
                     "tv": self.tv_cache,
                     "calendar": self.calendar_cache,

@@ -2,7 +2,11 @@ import asyncio
 import logging
 import json
 from src.cache.redis_manager import RedisManager
-from src.indices.models import DashboardData, IndicesGlobais, Commodities, IBOVTop10, Taxas, IndiceData, CalendarEvent, MarketBreadth, BasisData
+from src.indices.models import (
+    DashboardData, IndicesGlobais, Commodities, IBOVTop10, Taxas, 
+    MarketBreadth, BasisData, IndiceData, CalendarEvent, SentimentComparison,
+    VolatilityRegime, QuantDashboardData
+)
 from datetime import datetime, timezone, timedelta
 from typing import Dict, Any, Optional
 
@@ -111,6 +115,11 @@ class IndicesCollector:
                 if "volatility" in data and data["volatility"]:
                     volatility_data = VolatilityRegime(**data["volatility"])
 
+                # Quant Dashboard
+                quant_dashboard_data = None
+                if "quant_dashboard" in data and data["quant_dashboard"]:
+                    quant_dashboard_data = QuantDashboardData(**data["quant_dashboard"])
+
                 # 5. Advanced Sentiment Logic (Comparison & History)
                 current_time = datetime.now(timezone(timedelta(hours=-3))).strftime("%H:%M:%S")
                 
@@ -179,6 +188,7 @@ class IndicesCollector:
             breadth=breadth_data,
             basis=basis_value,
             volatility=volatility_data,
+            quant_dashboard=quant_dashboard_data,
             sentiment_comparison=sentiment_comparison,
             signal_history=self.signal_history,
             ai_analysis=ai_analysis,
