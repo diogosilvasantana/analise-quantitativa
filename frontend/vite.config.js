@@ -4,6 +4,11 @@ import react from '@vitejs/plugin-react';
 // https://vitejs.dev/config/
 export default defineConfig({
     plugins: [react()],
+    resolve: {
+        alias: {
+            "@": "/src",
+        },
+    },
     server: {
         host: true, // Permite acesso externo ao container
         port: 3000,

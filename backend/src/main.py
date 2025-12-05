@@ -78,6 +78,46 @@ async def get_dashboard_data():
         logger.error(f"❌ Erro em /api/dashboard_data: {e}")
         return {"error": str(e)}
 
+@app.get("/api/history/{asset}")
+async def get_history(asset: str, timeframe: str = "D1"):
+    """
+    Retorna histórico (candles) de um ativo.
+    Timeframe: D1 (Diário) ou H1 (Horário).
+    """
+    try:
+        # Normaliza o asset (ex: WIN -> WIN$N se necessário, mas o front deve mandar certo)
+        # O Bridge salva como history:WIN$N:D1
+        
+        key = f"history:{asset}:{timeframe}"
+        data = await redis_manager.get(key)
+        
+        if data:
+            return json.loads(data)
+        
+        return {"error": "No history found", "key": key}
+    
+    except Exception as e:
+        logger.error(f"❌ Erro em /api/history: {e}")
+        return {"error": str(e)}
+
+    except Exception as e:
+        logger.error(f"❌ Erro em /api/history: {e}")
+        return {"error": str(e)}
+
+@app.get("/api/analysis/latest")
+async def get_latest_analysis():
+    """
+    Retorna o último relatório gerado pelo AI Analyst.
+    """
+    try:
+        data = await redis_manager.get("ai_analyst_report")
+        if data:
+            return json.loads(data)
+        return {"sentiment": "NEUTRAL", "summary": "Aguardando análise...", "confidence": 0}
+    except Exception as e:
+        logger.error(f"❌ Erro em /api/analysis/latest: {e}")
+        return {"error": str(e)}
+
 @app.websocket("/ws/dashboard")
 async def websocket_endpoint(websocket: WebSocket):
     """WebSocket para receber dados do dashboard em tempo real"""

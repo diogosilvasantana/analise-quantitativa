@@ -190,6 +190,35 @@ class DataEngine:
                 logger.error(f"❌ Main Loop Error: {e}")
                 await asyncio.sleep(1)
 
+    async def _fetch_history_loop(self):
+        """
+        Loop for History Data (D1/H1).
+        Runs every 5 minutes.
+        """
+        while self.running:
+            logger.info("📜 Fetching History Data...")
+            try:
+                # WIN and WDO
+                targets = ["WIN$N", "WDO$N"]
+                timeframes = ["D1", "H1"]
+                
+                for symbol in targets:
+                    for tf in timeframes:
+                        # Run in thread to avoid blocking
+                        data = await asyncio.to_thread(self.mt5.get_history, symbol, tf, 100)
+                        if data:
+                            key = f"history:{symbol}:{tf}"
+                            self.redis.publish(key, data)
+                            # logger.info(f"✅ History updated for {symbol} {tf}")
+                        else:
+                            logger.warning(f"⚠️ No history for {symbol} {tf}")
+                            
+            except Exception as e:
+                logger.error(f"❌ History Loop Error: {e}")
+            
+            # Sleep for 5 minutes
+            await asyncio.sleep(300)
+
     async def run(self):
         """
         Starts all async tasks.
@@ -200,6 +229,7 @@ class DataEngine:
             self._fetch_macro_loop(),
             self._fetch_calendar_loop(),
             self._fetch_global_loop(),
+            self._fetch_history_loop(),
             self._main_loop()
         )
 

@@ -120,8 +120,8 @@ class CalendarClient:
                     if sentiment_cell:
                         impact = len(sentiment_cell.find_all("i", class_="grayFullBullishIcon"))
                     
-                    # Filter Impact (2 or 3 stars)
-                    if impact < 2:
+                    # Filter Impact (3 stars only)
+                    if impact < 3:
                         continue
 
                     # Extract Event Name

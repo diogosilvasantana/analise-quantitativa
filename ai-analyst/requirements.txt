@@ -1,0 +1,7 @@
+requests
+pandas
+anthropic
+schedule
+python-dotenv
+feedparser
+redis

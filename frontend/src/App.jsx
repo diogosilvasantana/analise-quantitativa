@@ -6,6 +6,7 @@ import { IBOVTop10Panel } from './components/IBOVTop10Panel';
 import { TaxesPanel } from './components/TaxesPanel';
 import { EconomicCalendar } from './components/EconomicCalendar';
 import { MarketSentimentPanelPRO } from './components/MarketSentimentPanelPRO';
+import AIAnalysisPanel from './components/AIAnalysisPanel';
 import './index.css'; // Importa o CSS global
 
 function App() {
@@ -44,6 +45,9 @@ function App() {
             <main className="dashboard-grid">
                 {dashboardData ? (
                     <>
+                        <div className="col-span-full">
+                            <AIAnalysisPanel />
+                        </div>
                         <MarketSentimentPanelPRO data={dashboardData} />
                         <IndicesPanel data={dashboardData} />
                         <CommoditiesPanel data={dashboardData} />

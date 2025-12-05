@@ -1,11 +1,12 @@
 from pydantic import BaseModel
-from typing import Dict, Optional, List
+from typing import Dict, Optional, List, Any
 from datetime import datetime
 
 class IndiceData(BaseModel):
     valor: float
     var: float
     var_pct: Optional[float] = None
+    ajuste: Optional[float] = None # New field for Adjustment Price
     timestamp: Optional[str] = None
 
 class IndicesGlobais(BaseModel):
@@ -16,6 +17,8 @@ class IndicesGlobais(BaseModel):
     DAX40: Optional[IndiceData] = None
     US10Y: Optional[IndiceData] = None
     EWZ: Optional[IndiceData] = None
+    PBR: Optional[IndiceData] = None # Petrobras ADR
+    VALE_ADR: Optional[IndiceData] = None # Vale ADR
 
 class Commodities(BaseModel):
     BRENT: Optional[IndiceData] = None
@@ -49,7 +52,8 @@ class IBOVTop10(BaseModel):
 class Taxas(BaseModel):
     CUPOM_LIMPO: Optional[IndiceData] = None
     PTAX: Optional[IndiceData] = None
-    DI_MT5: Optional[IndiceData] = None # DI vindo do MT5
+    DI_MT5: Optional[IndiceData] = None # DI1F27
+    DI1F29: Optional[IndiceData] = None # DI1F29
 
 class CalendarEvent(BaseModel):
     time: str
@@ -89,5 +93,8 @@ class DashboardData(BaseModel):
     basis: Optional[BasisData] = None
     sentiment_comparison: Optional[SentimentComparison] = None
     signal_history: List[Dict[str, str]] = []
+    ai_analysis: Optional[Dict[str, Any]] = None
+    win: Optional[IndiceData] = None # Snapshot WIN
+    wdo: Optional[IndiceData] = None # Snapshot WDO
     timestamp: str
     formatted_time: str

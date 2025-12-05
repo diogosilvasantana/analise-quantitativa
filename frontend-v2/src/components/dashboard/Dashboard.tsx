@@ -12,6 +12,7 @@ import { CommoditiesPanel } from './CommoditiesPanel';
 import { IBOVTop10Panel } from './IBOVTop10Panel';
 import { TaxesPanel } from './TaxesPanel';
 import { EconomicCalendar } from './EconomicCalendar';
+import { AIAnalysisPanel } from './AIAnalysisPanel';
 import { logger } from '@/lib/logger';
 
 export function Dashboard() {
@@ -45,6 +46,7 @@ export function Dashboard() {
                 <ErrorBoundary>
                     {dashboardData ? (
                         <div className="space-y-6">
+                            <AIAnalysisPanel data={dashboardData.ai_analysis} />
                             <MarketSentimentPanelPRO data={dashboardData} />
 
                             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

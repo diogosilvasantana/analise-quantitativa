@@ -13,7 +13,7 @@ class IndicesCollector:
         self.redis = redis_manager
         
         # Mapeamento para organizar os dados do Redis (macro) nas categorias certas
-        self.indices_map = ["SP500", "NASDAQ", "DXY", "DOW_JONES", "DAX40", "US10Y", "EWZ"]
+        self.indices_map = ["SP500", "NASDAQ", "DXY", "DOW_JONES", "DAX40", "US10Y", "EWZ", "PBR", "VALE_ADR"]
         self.commodities_map = ["BRENT", "OURO", "COBRE", "MINERIO_FERRO"]
         self.taxas_map = ["CUPOM_LIMPO", "PTAX"]
         
@@ -77,9 +77,11 @@ class IndicesCollector:
                     if item:
                         blue_chips_data[symbol] = IndiceData(**item)
                         
-                # DI do MT5
+                # DI do MT5 (DI1F27 e DI1F29)
                 if "DI1F27" in mt5 and mt5["DI1F27"]:
                      taxas_data["DI_MT5"] = IndiceData(**mt5["DI1F27"])
+                if "DI1F29" in mt5 and mt5["DI1F29"]:
+                     taxas_data["DI1F29"] = IndiceData(**mt5["DI1F29"])
 
                 # 3. Processa Calendar Data
                 calendar_events = []
@@ -140,6 +142,28 @@ class IndicesCollector:
         except Exception as e:
             logger.error(f"❌ Erro ao processar dados do Redis: {e}")
 
+        # 6. AI Analysis Report
+        ai_analysis = None
+        try:
+            raw_ai = await self.redis.get("ai_analyst_report")
+            if raw_ai:
+                ai_analysis = json.loads(raw_ai)
+        except Exception as e:
+            logger.error(f"❌ Erro ao buscar AI report: {e}")
+
+        # Extract WIN/WDO snapshots from MT5 data if available
+        win_snapshot = None
+        wdo_snapshot = None
+        if raw_data:
+            data = json.loads(raw_data)
+            mt5 = data.get("mt5", {})
+            # Try standard keys
+            if "WIN$N" in mt5: win_snapshot = IndiceData(**mt5["WIN$N"])
+            elif "WIN$" in mt5: win_snapshot = IndiceData(**mt5["WIN$"])
+            
+            if "WDO$N" in mt5: wdo_snapshot = IndiceData(**mt5["WDO$N"])
+            elif "WDO$" in mt5: wdo_snapshot = IndiceData(**mt5["WDO$"])
+
         # Monta o objeto final
         dashboard_data = DashboardData(
             indices_globais=IndicesGlobais(**indices_data),
@@ -151,6 +175,9 @@ class IndicesCollector:
             basis=basis_value,
             sentiment_comparison=sentiment_comparison,
             signal_history=self.signal_history,
+            ai_analysis=ai_analysis,
+            win=win_snapshot,
+            wdo=wdo_snapshot,
             timestamp=datetime.now(timezone(timedelta(hours=-3))).isoformat(),
             formatted_time=datetime.now(timezone(timedelta(hours=-3))).strftime("%H:%M:%S")
         )

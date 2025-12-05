@@ -105,10 +105,21 @@ class MT5Client:
                     change = price - info.session_close
                     change_pct = (change / info.session_close) * 100
                 
+                # Adjustment Price (Ajuste)
+                ajuste = 0.0
+                if info:
+                    # Try settlement price first (Ajuste oficial)
+                    if hasattr(info, 'session_price_settlement') and info.session_price_settlement > 0:
+                        ajuste = info.session_price_settlement
+                    # Fallback to Weighted Average if settlement not available (rare for Futures)
+                    elif hasattr(info, 'session_aw') and info.session_aw > 0:
+                        ajuste = info.session_aw
+
                 data[symbol] = {
                     "valor": price,
                     "var": change,
                     "var_pct": change_pct,
+                    "ajuste": ajuste,
                     "timestamp": datetime.datetime.now().isoformat()
                 }
             except Exception:
@@ -229,3 +240,47 @@ class MT5Client:
 
     def shutdown(self):
         mt5.shutdown()
+
+    def get_history(self, symbol: str, timeframe_str: str, count: int = 100):
+        """
+        Fetches historical data from MT5.
+        timeframe_str: "D1", "H1", "M5", etc.
+        """
+        if not self.connected:
+            if not mt5.initialize():
+                return []
+            self.connected = True
+
+        # Map string to MT5 constant
+        tf_map = {
+            "D1": mt5.TIMEFRAME_D1,
+            "H1": mt5.TIMEFRAME_H1,
+            "M5": mt5.TIMEFRAME_M5,
+            "M1": mt5.TIMEFRAME_M1
+        }
+        
+        tf = tf_map.get(timeframe_str, mt5.TIMEFRAME_D1)
+        
+        # Ensure symbol is selected
+        if not mt5.symbol_select(symbol, True):
+             logger.warning(f"⚠️ Símbolo {symbol} não encontrado para histórico")
+             return []
+
+        rates = mt5.copy_rates_from_pos(symbol, tf, 0, count)
+        
+        if rates is None:
+            logger.warning(f"⚠️ Sem histórico para {symbol}")
+            return []
+            
+        data = []
+        for rate in rates:
+            data.append({
+                "time": int(rate['time']),
+                "open": float(rate['open']),
+                "high": float(rate['high']),
+                "low": float(rate['low']),
+                "close": float(rate['close']),
+                "tick_volume": int(rate['tick_volume']),
+                "real_volume": int(rate['real_volume'])
+            })
+        return data

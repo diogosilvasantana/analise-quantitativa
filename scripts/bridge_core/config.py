@@ -33,6 +33,8 @@ class BridgeConfig:
         "DAX40": "https://br.investing.com/indices/germany-30",
         "US10Y": "https://br.investing.com/rates-bonds/u.s.-10-year-bond-yield",
         "EWZ": "https://br.investing.com/etfs/ishares-brazil-index",
+        "PBR": "https://br.investing.com/equities/petroleo-brasileiro-sa-petrobras-adr",
+        "VALE_ADR": "https://br.investing.com/equities/vale-s.a.--adr",
         
         # Commodities
         "BRENT": "https://br.investing.com/commodities/brent-oil",

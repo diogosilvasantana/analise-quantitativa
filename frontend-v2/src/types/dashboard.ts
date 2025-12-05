@@ -57,6 +57,33 @@ export interface SignalHistoryItem {
     signal: string;
 }
 
+export interface AIAnalysisData {
+    narrative: string;
+    win_context: {
+        bias: string;
+        magnets: string[];
+        structure: string;
+        alert: string;
+    };
+    wdo_context: {
+        bias: string;
+        magnets: string[];
+        structure: string;
+        alert: string;
+    };
+    key_levels: {
+        win: { supports: string[]; resistances: string[] };
+        wdo: { supports: string[]; resistances: string[] };
+    };
+    executive_summary: string;
+    players_outlook: {
+        foreigners: string;
+        institutions: string;
+        retail_risk: string;
+    };
+    timestamp?: string;
+}
+
 export interface DashboardData {
     formatted_time: string;
     timestamp: string;
@@ -69,6 +96,7 @@ export interface DashboardData {
     basis?: Basis;
     sentiment_comparison?: SentimentComparison;
     signal_history?: SignalHistoryItem[];
+    ai_analysis?: AIAnalysisData;
 }
 
 export interface WebSocketMessage {
