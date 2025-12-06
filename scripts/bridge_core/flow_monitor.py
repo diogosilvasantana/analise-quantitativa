@@ -68,13 +68,13 @@ class FlowMonitor:
         bear_power = 0
         details = []
         
-        # --- 1. Flow Analysis (Weight: 50%) ---
+        # --- 1. Flow Analysis (Weight: 40%) ---
         # Normalize flow: 5000 contracts = 100% power contribution
         MAX_FLOW_REF = 5000 
         
-        # Foreigners (Gringo) - Weight 25
+        # Foreigners (Gringo) - Weight 20
         gringo_vol = flow.get("FOREIGN", 0)
-        gringo_score = min(abs(gringo_vol) / MAX_FLOW_REF, 1.0) * 25
+        gringo_score = min(abs(gringo_vol) / MAX_FLOW_REF, 1.0) * 20
         if gringo_vol > 0:
             bull_power += gringo_score
             if gringo_vol > 1000: details.append(f"Gringo Comprado ({int(gringo_score)})")
@@ -82,9 +82,9 @@ class FlowMonitor:
             bear_power += gringo_score
             if gringo_vol < -1000: details.append(f"Gringo Vendido ({int(gringo_score)})")
 
-        # Institutional - Weight 15
+        # Institutional - Weight 12
         inst_vol = flow.get("INSTITUTIONAL", 0)
-        inst_score = min(abs(inst_vol) / MAX_FLOW_REF, 1.0) * 15
+        inst_score = min(abs(inst_vol) / MAX_FLOW_REF, 1.0) * 12
         if inst_vol > 0:
             bull_power += inst_score
             if inst_vol > 1000: details.append(f"Inst. Comprado ({int(inst_score)})")
@@ -92,9 +92,9 @@ class FlowMonitor:
             bear_power += inst_score
             if inst_vol < -1000: details.append(f"Inst. Vendido ({int(inst_score)})")
             
-        # Retail - Weight 10
+        # Retail - Weight 8
         retail_vol = flow.get("RETAIL", 0)
-        retail_score = min(abs(retail_vol) / MAX_FLOW_REF, 1.0) * 10
+        retail_score = min(abs(retail_vol) / MAX_FLOW_REF, 1.0) * 8
         if retail_vol > 0:
             bull_power += retail_score
         else:
@@ -125,17 +125,17 @@ class FlowMonitor:
         bull_power += macro_bull
         bear_power += macro_bear
         
-        # --- 3. IBOV Top 10 Analysis (Weight: 30%) ---
-        # Only for WIN. For WDO, we invert the logic (IBOV down -> WDO up usually)
+        # --- 3. IBOV Top 10 Analysis (Weight: 40%) ---
+        # FIX: Changed from 'change_pct' to 'var_pct' to match actual data structure
         if blue_chips:
-            positive_stocks = sum(1 for s in blue_chips.values() if s.get('change_pct', 0) > 0)
-            negative_stocks = sum(1 for s in blue_chips.values() if s.get('change_pct', 0) < 0)
+            positive_stocks = sum(1 for s in blue_chips.values() if s.get('var_pct', 0) > 0)
+            negative_stocks = sum(1 for s in blue_chips.values() if s.get('var_pct', 0) < 0)
             total_stocks = len(blue_chips)
             
             if total_stocks > 0:
                 # Calculate net sentiment (-1 to +1)
                 ibov_sentiment = (positive_stocks - negative_stocks) / total_stocks
-                ibov_score = abs(ibov_sentiment) * 30 # Max 30 points
+                ibov_score = abs(ibov_sentiment) * 40 # Increased from 30 to 40
                 
                 if asset_type == "WIN":
                     if ibov_sentiment > 0.2: # Mostly positive
@@ -154,13 +154,11 @@ class FlowMonitor:
                         details.append(f"Blue Chips Alta ({int(ibov_score)})")
 
         # --- 4. Divergence Penalty (Safety Check) ---
-        # If Bull Power is high (Flow) but Bear Power is significant (Price/Macro),
-        # we must reduce the Bull Score to avoid "Strong Buy" in a crash.
-        
-        if bull_power > 60 and bear_power > 30:
-            penalty = bear_power * 0.5
+        # More aggressive penalty to prevent "Strong Buy" during crashes
+        if bull_power > 50 and bear_power > 25:
+            penalty = bear_power * 0.7  # Increased from 0.5 to 0.7
             bull_power -= penalty
-            details.append(f"Penalidade Divergência (-{int(penalty)})")
+            details.append(f"⚠️ Divergência (-{int(penalty)})")
             
         # Cap at 100
         bull_power = min(max(bull_power, 0), 100)
@@ -171,9 +169,6 @@ class FlowMonitor:
         
         # Improved Scaling: Center at 7.5 (Neutral)
         # Range -100 to +100 maps to 0 to 15
-        # -100 -> 0
-        # 0 -> 7.5
-        # +100 -> 15
         score_scaled = ((net_raw + 100) / 200) * 15
         
         return {

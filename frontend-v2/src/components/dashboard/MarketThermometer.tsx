@@ -12,16 +12,9 @@ interface MarketThermometerProps {
 
 const MarketThermometer: React.FC<MarketThermometerProps> = ({ title, bullPower, bearPower, maxPower = 10 }) => {
     // Calculate Net Score for Needle Position
-    // Range: -Max to +Max. Needle should be from 0 to 180 degrees.
-    // Let's normalize:
-    // Net = Bull - Bear.
-    // If Bull=10, Bear=0 -> Net=10 -> Full Green (180 deg)
-    // If Bull=0, Bear=10 -> Net=-10 -> Full Red (0 deg)
-    // If Bull=5, Bear=5 -> Net=0 -> Middle (90 deg)
-
     const netScore = bullPower - bearPower;
-    const totalRange = maxPower * 2; // -10 to +10 = 20 range
-    const normalizedScore = Math.min(Math.max(netScore, -maxPower), maxPower); // Clamp
+    const totalRange = maxPower * 2;
+    const normalizedScore = Math.min(Math.max(netScore, -maxPower), maxPower);
     const percentage = ((normalizedScore + maxPower) / totalRange) * 100;
 
     // Gauge Data (Background Arc)
@@ -32,15 +25,6 @@ const MarketThermometer: React.FC<MarketThermometerProps> = ({ title, bullPower,
     ];
 
     // Needle Rotation
-    // 0% = 180deg (Left/Red) ? No, usually Gauge goes Left to Right.
-    // Let's say Left is Bear (Red), Right is Bull (Green).
-    // 0 deg is usually 3 o'clock in Recharts. 180 is 9 o'clock.
-    // We want startAngle={180} endAngle={0}.
-    // 180 deg = Left (Bear). 0 deg = Right (Bull).
-    // If percentage is 0% (Full Bear), angle should be 180.
-    // If percentage is 100% (Full Bull), angle should be 0.
-    // Angle = 180 - (percentage/100 * 180)
-
     const needleAngle = 180 - (percentage / 100 * 180);
 
     return (
@@ -88,7 +72,7 @@ const MarketThermometer: React.FC<MarketThermometerProps> = ({ title, bullPower,
                     <div
                         className="absolute bottom-0 w-1 h-20 bg-slate-200 origin-bottom transition-all duration-1000 ease-out rounded-full"
                         style={{
-                            transform: `rotate(${90 - needleAngle}deg)`, // Correct rotation: 0deg(Bull) -> 90deg(Right), 180deg(Bear) -> -90deg(Left)
+                            transform: `rotate(${90 - needleAngle}deg)`,
                             bottom: '0px',
                             zIndex: 10
                         }}
