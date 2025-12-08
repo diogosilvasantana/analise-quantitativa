@@ -9,6 +9,7 @@ from .investing_client import InvestingClient
 from .calendar_client import CalendarClient
 from .redis_client import RedisClient
 from .flow_monitor import FlowMonitor
+from .profit_bridge import ProfitBridge
 
 logger = logging.getLogger("Bridge.DataEngine")
 
@@ -20,9 +21,16 @@ class DataEngine:
         self.mt5 = MT5Client()
         self.investing = InvestingClient()
         self.calendar = CalendarClient()
-        self.calendar = CalendarClient()
         self.redis = RedisClient()
         self.flow_monitor = FlowMonitor()
+        
+        # Profit Pro RTD Bridge (optional, will fail gracefully if Excel not open)
+        try:
+            self.profit = ProfitBridge("profit-data.xlsx")
+            logger.info("✅ Profit Pro RTD connected")
+        except Exception as e:
+            logger.warning(f"⚠️ Profit Pro RTD not available: {e}")
+            self.profit = None
         
         # State/Cache
         self.macro_cache = {}
@@ -158,11 +166,21 @@ class DataEngine:
         """
         Main Aggregation Loop (Fast).
         Collects MT5 data (Realtime) + Cached Macro/TV/Calendar -> Redis.
+        If Profit Pro RTD is available, uses its calculated indicators.
         """
         while self.running:
             try:
                 # 1. MT5 Data (Sync, fast local)
                 mt5_data = await asyncio.to_thread(self.mt5.fetch_data)
+                
+                # 1.5. Profit Pro RTD Data (if available)
+                profit_data = None
+                if self.profit:
+                    try:
+                        profit_data = await asyncio.to_thread(self.profit.get_data)
+                        logger.debug("📊 Profit Pro RTD data fetched")
+                    except Exception as e:
+                        logger.warning(f"⚠️ Error reading Profit RTD: {e}")
                 
                 # Check for missing assets (Fallback Logic)
                 # We check against MT5Client.TOP_ASSETS
@@ -178,8 +196,43 @@ class DataEngine:
                 # Check Flow Data
                 flow_data = self.flow_monitor.check_update() or self.flow_monitor.current_flows
                 
-                # Calculate Quant Score (Pass all flows, logic inside handles WIN focus)
-                quant_score = self.flow_monitor.calculate_quant_score(flow_data, self.macro_cache, mt5_data.get("blue_chips", {}))
+                # 3. Quant Score Calculation
+                # If Profit Pro RTD is available, use its pre-calculated scores
+                # Otherwise, calculate manually
+                if profit_data and profit_data.get("win") and profit_data.get("wdo"):
+                    # Use Profit Pro RTD scores directly
+                    quant_score = {
+                        "WIN": {
+                            "score": profit_data["win"].get("score", 0),
+                            "bull_power": profit_data["win"].get("bull_power", 0),
+                            "bear_power": profit_data["win"].get("bear_power", 0),
+                            "max_score": 15,
+                            "details": [f"Profit Pro: {profit_data['win'].get('decision', 'N/A')}"],
+                            "sentiment": self._get_sentiment(profit_data["win"].get("decision", "")),
+                            "status": profit_data["win"].get("decision", "AGUARDAR"),
+                            "direction": self._get_direction(profit_data["win"].get("decision", ""))
+                        },
+                        "WDO": {
+                            "score": profit_data["wdo"].get("score", 0),
+                            "bull_power": profit_data["wdo"].get("bull_power", 0),
+                            "bear_power": profit_data["wdo"].get("bear_power", 0),
+                            "max_score": 15,
+                            "details": [f"Profit Pro: {profit_data['wdo'].get('decision', 'N/A')}"],
+                            "sentiment": self._get_sentiment(profit_data["wdo"].get("decision", "")),
+                            "status": profit_data["wdo"].get("decision", "AGUARDAR"),
+                            "direction": self._get_direction(profit_data["wdo"].get("decision", ""))
+                        }
+                    }
+                    logger.info("✅ Using Profit Pro RTD scores")
+                else:
+                    # Fallback to manual calculation
+                    quant_score = self.flow_monitor.calculate_quant_score(
+                        flow_data, 
+                        {**self.macro_cache, **mt5_data},  # Merge macro cache with MT5 data (includes WDO, DI)
+                        mt5_data.get("blue_chips", {}),
+                        self.mt5  # Pass MT5Client instance
+                    )
+                    logger.debug("📊 Using manual score calculation")
                 
                 payload = {
                     "mt5": mt5_data,
@@ -189,8 +242,10 @@ class DataEngine:
                     "volatility": volatility_regime,
                     "quant_dashboard": {
                         "flows": flow_data, # Renamed to flows (plural) to indicate dict of assets
-                        "score": quant_score
+                        "score": quant_score,
+                        "source": "profit_pro" if profit_data else "manual"  # Indicate data source
                     },
+                    "profit_rtd": profit_data,  # Include raw Profit Pro data
                     "macro": self.macro_cache,
                     "tv": self.tv_cache,
                     "calendar": self.calendar_cache,
@@ -235,6 +290,26 @@ class DataEngine:
             
             # Sleep for 5 minutes
             await asyncio.sleep(300)
+
+    def _get_sentiment(self, decision: str) -> str:
+        """Convert Profit Pro decision text to sentiment."""
+        decision_upper = decision.upper()
+        if "COMPRA" in decision_upper:
+            return "BULLISH"
+        elif "VENDA" in decision_upper:
+            return "BEARISH"
+        else:
+            return "NEUTRAL"
+    
+    def _get_direction(self, decision: str) -> str:
+        """Convert Profit Pro decision text to direction."""
+        decision_upper = decision.upper()
+        if "COMPRA" in decision_upper:
+            return "BUY"
+        elif "VENDA" in decision_upper:
+            return "SELL"
+        else:
+            return "NEUTRAL"
 
     async def run(self):
         """

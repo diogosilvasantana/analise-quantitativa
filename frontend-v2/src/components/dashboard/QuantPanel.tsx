@@ -113,6 +113,18 @@ const QuantPanel: React.FC<QuantPanelProps> = ({ data }) => {
                         <Activity className="w-4 h-4 text-blue-400" />
                         Quant Dashboard
                     </CardTitle>
+                    {/* Market Status Badge */}
+                    {scores.WIN?.market_status && (
+                        <Badge
+                            variant={scores.WIN.market_status === "OPEN" ? "default" : "secondary"}
+                            className={`text-[10px] ${scores.WIN.market_status === "OPEN"
+                                    ? "bg-green-500/20 text-green-400 border-green-500/30"
+                                    : "bg-slate-500/20 text-slate-400 border-slate-500/30"
+                                }`}
+                        >
+                            {scores.WIN.market_status === "OPEN" ? "🟢 ABERTO" : "🔒 FECHADO"}
+                        </Badge>
+                    )}
                 </div>
             </CardHeader>
 

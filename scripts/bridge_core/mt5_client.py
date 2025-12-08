@@ -238,6 +238,80 @@ class MT5Client:
             
         return data
 
+    def calculate_vwap(self, symbol: str, period_minutes: int = 60):
+        """
+        Calculates VWAP (Volume Weighted Average Price) intraday.
+        
+        Args:
+            symbol: Symbol to calculate VWAP for (e.g., "WDO$N")
+            period_minutes: Period in minutes from now (default: 60 = last hour)
+        
+        Returns:
+            float: VWAP value or None if calculation fails
+        """
+        if not self.connected:
+            if not mt5.initialize():
+                return None
+            self.connected = True
+        
+        # Get M1 candles for the period
+        rates = self.get_history(symbol, "M1", period_minutes)
+        
+        if not rates or len(rates) < 5:
+            logger.warning(f"⚠️ Dados insuficientes para VWAP de {symbol}")
+            return None
+        
+        total_pv = 0  # Price × Volume
+        total_volume = 0
+        
+        for rate in rates:
+            # Typical Price = (High + Low + Close) / 3
+            typical_price = (rate['high'] + rate['low'] + rate['close']) / 3
+            volume = rate['real_volume']
+            
+            if volume > 0:
+                total_pv += typical_price * volume
+                total_volume += volume
+        
+        if total_volume == 0:
+            logger.warning(f"⚠️ Volume zero para VWAP de {symbol}")
+            return None
+        
+        vwap = total_pv / total_volume
+        return round(vwap, 2)
+
+    def get_volume_average(self, symbol: str, days: int = 10):
+        """
+        Calculates average daily volume over the last N days.
+        
+        Args:
+            symbol: Symbol to get volume for (e.g., "WIN$N")
+            days: Number of days to average (default: 10)
+        
+        Returns:
+            float: Average daily volume or 5000 (fallback)
+        """
+        if not self.connected:
+            if not mt5.initialize():
+                return 5000  # Fallback
+            self.connected = True
+        
+        # Get daily history
+        rates = self.get_history(symbol, "D1", days)
+        
+        if not rates or len(rates) < days:
+            logger.warning(f"⚠️ Histórico insuficiente para volume médio de {symbol}, usando fallback")
+            return 5000  # Fallback to fixed value
+        
+        # Sum real volume from last N days
+        total_volume = sum(rate['real_volume'] for rate in rates[-days:])
+        
+        # Calculate daily average
+        avg_daily_volume = total_volume / days
+        
+        logger.info(f"📊 Volume médio {days}d para {symbol}: {avg_daily_volume:.0f}")
+        return avg_daily_volume
+
     def shutdown(self):
         mt5.shutdown()
 

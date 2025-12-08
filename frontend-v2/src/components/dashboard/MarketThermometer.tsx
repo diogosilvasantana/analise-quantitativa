@@ -10,12 +10,21 @@ interface MarketThermometerProps {
     maxPower?: number;
 }
 
-const MarketThermometer: React.FC<MarketThermometerProps> = ({ title, bullPower, bearPower, maxPower = 10 }) => {
-    // Calculate Net Score for Needle Position
-    const netScore = bullPower - bearPower;
-    const totalRange = maxPower * 2;
-    const normalizedScore = Math.min(Math.max(netScore, -maxPower), maxPower);
-    const percentage = ((normalizedScore + maxPower) / totalRange) * 100;
+const MarketThermometer: React.FC<MarketThermometerProps> = ({ title, bullPower, bearPower, maxPower = 15 }) => {
+    // FIX: Use absolute scores, not net difference
+    // The needle should point based on which side is dominant
+
+    const totalPower = bullPower + bearPower;
+
+    // Calculate needle position (0-100%)
+    // If only bull power: 100% (far right)
+    // If only bear power: 0% (far left)
+    // If equal: 50% (center)
+    let percentage = 50; // Default center
+
+    if (totalPower > 0) {
+        percentage = (bullPower / totalPower) * 100;
+    }
 
     // Gauge Data (Background Arc)
     const data = [
@@ -24,7 +33,7 @@ const MarketThermometer: React.FC<MarketThermometerProps> = ({ title, bullPower,
         { name: 'Bullish', value: 1, color: '#22c55e' }, // Green
     ];
 
-    // Needle Rotation
+    // Needle Rotation (0% = far left/red, 100% = far right/green)
     const needleAngle = 180 - (percentage / 100 * 180);
 
     return (
@@ -38,11 +47,11 @@ const MarketThermometer: React.FC<MarketThermometerProps> = ({ title, bullPower,
 
                 {/* Bear Side */}
                 <div className="flex flex-col items-center gap-1">
-                    <div className="w-10 h-10 rounded-full bg-red-500/10 flex items-center justify-center border border-red-500/20">
-                        <TrendingDown className="w-6 h-6 text-red-500" />
+                    <div className="w-12 h-12 rounded-full bg-red-500/10 flex items-center justify-center border border-red-500/20">
+                        <TrendingDown className="w-6 h-6 text-red-500" strokeWidth={2.5} />
                     </div>
                     <span className="text-2xl font-bold text-red-500">{bearPower}</span>
-                    <span className="text-[10px] text-slate-500 uppercase">Vendedores</span>
+                    <span className="text-[10px] text-slate-400 uppercase tracking-wider">Bear</span>
                 </div>
 
                 {/* Gauge */}
@@ -83,11 +92,11 @@ const MarketThermometer: React.FC<MarketThermometerProps> = ({ title, bullPower,
 
                 {/* Bull Side */}
                 <div className="flex flex-col items-center gap-1">
-                    <div className="w-10 h-10 rounded-full bg-green-500/10 flex items-center justify-center border border-green-500/20">
-                        <TrendingUp className="w-6 h-6 text-green-500" />
+                    <div className="w-12 h-12 rounded-full bg-green-500/10 flex items-center justify-center border border-green-500/20">
+                        <TrendingUp className="w-6 h-6 text-green-500" strokeWidth={2.5} />
                     </div>
                     <span className="text-2xl font-bold text-green-500">{bullPower}</span>
-                    <span className="text-[10px] text-slate-500 uppercase">Compradores</span>
+                    <span className="text-[10px] text-slate-400 uppercase tracking-wider">Bull</span>
                 </div>
 
             </CardContent>
