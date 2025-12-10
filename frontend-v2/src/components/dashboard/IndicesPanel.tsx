@@ -57,11 +57,11 @@ export function IndicesPanel({ data }: IndicePanelProps) {
 
                             <div className={`flex items-center gap-1 font-mono font-bold text-sm ${colorClass}`}>
                                 {isPositive ? <TrendingUp className="w-3 h-3" /> : isNegative ? <TrendingDown className="w-3 h-3" /> : <Minus className="w-3 h-3" />}
-                                <span>{item.valor.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                                <span>{(item.valor || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                             </div>
 
                             <div className={`text-xs font-bold ${colorClass}`}>
-                                {item.var_pct > 0 ? '+' : ''}{item.var_pct.toFixed(2)}%
+                                {item.var_pct > 0 ? '+' : ''}{(item.var_pct || 0).toFixed(2)}%
                             </div>
                         </div>
                     );

@@ -159,52 +159,64 @@ class FlowMonitor:
         details.append("✅ Mercado Aberto")
         
         # --- 1. Fluxo de Players (9 pontos) ---
-        # Normalização por Média Móvel de Volume (10 dias)
+        # Normalização por Volume Financeiro (SpyFlow agora envia R$)
         
-        # Get volume average (fallback to 5000 if MT5 not available)
-        avg_volume = 5000
+        # Get volume average (contracts)
+        avg_volume_contracts = 5000
         if mt5_client:
             try:
-                avg_volume = mt5_client.get_volume_average(
+                avg_volume_contracts = mt5_client.get_volume_average(
                     "WIN$N" if asset_type == "WIN" else "WDO$N", 
                     days=10
                 )
             except Exception as e:
                 logger.warning(f"⚠️ Erro ao obter volume médio: {e}")
+                
+        # Calculate Average Financial Volume (Daily Estimate)
+        # Avg Financial = Avg Contracts * Current Price
+        current_price = asset_data.get("valor", 0)
+        if current_price == 0:
+             # Fallback if no price
+             current_price = 100000 if asset_type == "WIN" else 5000
+             
+        avg_financial_volume = avg_volume_contracts * current_price
         
+        # Avoid division by zero
+        if avg_financial_volume == 0: avg_financial_volume = 1
+
         # Estrangeiro (Gringo) - Weight 6 pts (DRIVER PRINCIPAL)
-        gringo_vol = flow.get("FOREIGN", 0)
-        gringo_normalized = min(abs(gringo_vol) / avg_volume, 1.0)
+        gringo_val = flow.get("FOREIGN", 0) # Now in Currency (R$)
+        gringo_normalized = min(abs(gringo_val) / avg_financial_volume, 1.0)
         gringo_score = gringo_normalized * 6
         
-        if gringo_vol > 0:
+        if gringo_val > 0:
             bull_power += gringo_score
-            if gringo_vol > avg_volume * 0.3:  # Significativo (>30% da média)
+            if gringo_val > avg_financial_volume * 0.3:  # Significativo (>30% da média financeira)
                 details.append(f"🌍 Gringo Comprador ({int(gringo_score)})")
         else:
             bear_power += gringo_score
-            if gringo_vol < -avg_volume * 0.3:
+            if gringo_val < -avg_financial_volume * 0.3:
                 details.append(f"🌍 Gringo Vendedor ({int(gringo_score)})")
 
         # Institucional - Weight 3 pts (APOIO SECUNDÁRIO)
-        inst_vol = flow.get("INSTITUTIONAL", 0)
-        inst_normalized = min(abs(inst_vol) / avg_volume, 1.0)
+        inst_val = flow.get("INSTITUTIONAL", 0)
+        inst_normalized = min(abs(inst_val) / avg_financial_volume, 1.0)
         inst_score = inst_normalized * 3
         
-        if inst_vol > 0:
+        if inst_val > 0:
             bull_power += inst_score
-            if inst_vol > avg_volume * 0.3:
+            if inst_val > avg_financial_volume * 0.3:
                 details.append(f"🏦 Inst. Comprador ({int(inst_score)})")
         else:
             bear_power += inst_score
-            if inst_vol < -avg_volume * 0.3:
+            if inst_val < -avg_financial_volume * 0.3:
                 details.append(f"🏦 Inst. Vendedor ({int(inst_score)})")
             
         # Varejo - Weight 0 pts (APENAS INFORMATIVO)
-        retail_vol = flow.get("RETAIL", 0)
+        retail_val = flow.get("RETAIL", 0)
         # Não soma no score, mas registra para informação
-        if abs(retail_vol) > avg_volume * 0.2:
-            retail_dir = "Comprador" if retail_vol > 0 else "Vendedor"
+        if abs(retail_val) > avg_financial_volume * 0.2:
+            retail_dir = "Comprador" if retail_val > 0 else "Vendedor"
             details.append(f"👥 Varejo {retail_dir} (Info)")
 
         # --- 2. Macro & Correlações (3 pontos) ---
@@ -363,7 +375,7 @@ class FlowMonitor:
             dominant_score = max(bull_score, bear_score)
         
         # Check for critical divergence override
-        if bull_score >= 12 and gringo_vol < -avg_volume * 0.2:
+        if bull_score >= 12 and gringo_val < -avg_financial_volume * 0.2:
             status = "DIVERGÊNCIA CRÍTICA"
             sentiment = "WARNING"
             details.append("⚠️ DIVERGÊNCIA: Score Alto + Gringo Vendedor!")

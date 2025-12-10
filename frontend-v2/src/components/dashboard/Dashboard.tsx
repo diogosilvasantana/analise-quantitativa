@@ -8,7 +8,7 @@ import { IndicesPanel } from './IndicesPanel';
 import { CommoditiesPanel } from './CommoditiesPanel';
 import { IBOVTop10Panel } from './IBOVTop10Panel';
 import { TaxesPanel } from './TaxesPanel';
-import { AIAnalysisPanel } from './AIAnalysisPanel';
+import { AIAnalysisPanel, AIContextCard } from './AIAnalysisPanel';
 import QuantPanel from './QuantPanel';
 import MarketThermometer from './MarketThermometer';
 import { EconomicCalendar } from './EconomicCalendar';
@@ -80,44 +80,99 @@ export default function Dashboard() {
                 </div>
             </header>
 
-            {/* Main Grid */}
-            <div className="grid grid-cols-1 gap-6 max-w-[1920px] mx-auto">
+            {/* 3-COLUMN ASSET-CENTRIC LAYOUT (40/40/20) */}
+            <div className="grid grid-cols-1 xl:grid-cols-10 gap-6 max-w-[1920px] mx-auto xl:h-[calc(100vh-140px)]">
 
-                {/* Top Row: Global Indices Ticker */}
-                <div className="w-full">
-                    <IndicesPanel data={dashboardData} />
+                {/* === COLUMN 1: WIN (Index) - 40% === */}
+                <div className="xl:col-span-4 flex flex-col gap-4 h-full">
+                    {/* Header / Termometer */}
+                    <div className="flex-none">
+                        <div className="flex items-center gap-2 mb-2">
+                            <span className="text-blue-400 font-bold text-lg">WIN (Índice)</span>
+                            <div className="h-px bg-blue-900/50 flex-1"></div>
+                        </div>
+                        <MarketThermometer
+                            title="Força WIN"
+                            bullPower={winScore.bull_power}
+                            bearPower={winScore.bear_power}
+                            maxPower={100}
+                        />
+                    </div>
+
+                    {/* AI Context Card */}
+                    <div className="flex-none h-48">
+                        <AIContextCard
+                            title="Contexto IA (WIN)"
+                            assetType="WIN"
+                            context={dashboardData.ai_analysis?.win_context}
+                        />
+                    </div>
+
+                    {/* Quant Flow (Full Height remaining) */}
+                    <div className="flex-1 min-h-0">
+                        <QuantPanel data={dashboardData} asset="WIN" />
+                    </div>
                 </div>
 
-                {/* Second Row: Market Thermometers (Gauge) */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <MarketThermometer
-                        title="Termômetro WIN (Índice)"
-                        bullPower={winScore.bull_power}
-                        bearPower={winScore.bear_power}
-                        maxPower={100}
-                    />
-                    <MarketThermometer
-                        title="Termômetro WDO (Dólar)"
-                        bullPower={wdoScore.bull_power}
-                        bearPower={wdoScore.bear_power}
-                        maxPower={100}
-                    />
+
+                {/* === COLUMN 2: WDO (Dollar) - 40% === */}
+                <div className="xl:col-span-4 flex flex-col gap-4 h-full">
+                    {/* Header / Termometer */}
+                    <div className="flex-none">
+                        <div className="flex items-center gap-2 mb-2">
+                            <span className="text-green-400 font-bold text-lg">WDO (Dólar)</span>
+                            <div className="h-px bg-green-900/50 flex-1"></div>
+                        </div>
+                        <MarketThermometer
+                            title="Força WDO"
+                            bullPower={wdoScore.bull_power}
+                            bearPower={wdoScore.bear_power}
+                            maxPower={100}
+                        />
+                    </div>
+
+                    {/* AI Context Card */}
+                    <div className="flex-none h-48">
+                        <AIContextCard
+                            title="Contexto IA (WDO)"
+                            assetType="WDO"
+                            context={dashboardData.ai_analysis?.wdo_context}
+                        />
+                    </div>
+
+                    {/* Quant Flow (Full Height remaining) */}
+                    <div className="flex-1 min-h-0">
+                        <QuantPanel data={dashboardData} asset="WDO" />
+                    </div>
                 </div>
 
-                {/* Third Row: Quant Flow + Bar Charts */}
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                    <QuantPanel data={dashboardData} />
-                    <IBOVTop10Panel data={dashboardData} />
-                    <CommoditiesPanel data={dashboardData} />
+
+                {/* === COLUMN 3: SIDEBAR (Context) - 20% === */}
+                <div className="xl:col-span-2 flex flex-col gap-4 h-full xl:overflow-y-auto pr-1">
+                    {/* Global Narrative */}
+                    <div className="flex-none">
+                        <AIAnalysisPanel data={dashboardData.ai_analysis} />
+                    </div>
+
+                    {/* Calendar */}
+                    <div className="flex-none">
+                        <EconomicCalendar data={dashboardData} />
+                    </div>
+
+                    {/* Asset Drivers */}
+                    <div className="flex-none space-y-4">
+                        <IBOVTop10Panel data={dashboardData} />
+                        <CommoditiesPanel data={dashboardData} />
+                    </div>
                 </div>
 
-                {/* Bottom Row: Taxes + AI Analysis + Calendar */}
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                    <TaxesPanel data={dashboardData} />
-                    <AIAnalysisPanel data={dashboardData.ai_analysis} />
-                    <EconomicCalendar data={dashboardData} />
-                </div>
             </div>
+
+            {/* Footer Ticker */}
+            <div className="w-full mt-4 border-t border-slate-800 pt-2 opacity-60 hover:opacity-100 transition-opacity">
+                <IndicesPanel data={dashboardData} />
+            </div>
+
         </div>
     );
 }

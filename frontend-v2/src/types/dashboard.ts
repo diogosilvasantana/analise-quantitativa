@@ -108,6 +108,7 @@ export interface QuantDashboardData {
             max_score: number;
             details: string[];
             sentiment: string;
+            market_status?: string;
         }
     };
 }
